@@ -1,0 +1,60 @@
+{
+    "dataset": "citeseer",
+    "n_clusters": 7,
+    "is_sparse_graph": false,
+    "should_use_ae": false,
+    "should_use_siamese": false,
+    "should_check_generalization": true,
+    "ae": {
+        "architecture": {
+            "hidden_dim1": 512,
+            "hidden_dim2": 512,
+            "hidden_dim3": 2048,
+            "output_dim": 10
+        },
+        "epochs": 3,
+        "n_samples": 70000,
+        "lr": 1e-3,
+        "lr_decay": 0.1,
+        "min_lr": 1e-7,
+        "patience": 5,
+        "batch_size": 256
+    },
+    "siamese": {
+        "architecture": {
+            "n_layers": 5,
+            "hidden_dim1": 1024,
+            "hidden_dim2": 1024,
+            "hidden_dim3": 512,
+            "output_dim": 10
+        },
+        "epochs": 3,
+        "n_samples": 70000,
+        "lr": 1e-3,
+        "lr_decay": 0.1,
+        "min_lr": 1e-7,
+        "patience": 10,
+        "n_neighbors": 2,
+        "use_approx": false,
+        "batch_size": 128
+    },
+    "spectral": {
+        "architecture": {
+            "n_layers": 5,
+            "hidden_dim1": 1024,
+            "hidden_dim2": 1024,
+            "hidden_dim3": 1024,
+            "output_dim": 1024
+        },
+        "epochs": 150,
+        "lr": 1e-3,
+        "lr_decay": 0.1,
+        "min_lr": 1e-10,
+        "batch_size": 80000,
+        "n_neighbors": 8,
+        "scale_k": 2,
+        "is_local_scale": false,
+        "n_clusters": 7,
+        "patience": 10
+    }
+}
