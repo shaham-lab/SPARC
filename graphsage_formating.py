@@ -147,4 +147,4 @@ def create_graphsage_data(dataset):
 
 
 
-create_graphsage_data('citeseer')
+create_graphsage_data('pubmed')
