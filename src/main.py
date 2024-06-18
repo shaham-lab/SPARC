@@ -84,7 +84,7 @@ def main():
     num_clusters_val = config["spectral"]["num_clusters_val"]
     num_clusters_test = config["spectral"]["num_clusters_test"]
     diag_lambda = config["spectral"]["diag_lambda"]
-    output_dim = config["spectral"]["architectures"]["output_dim"]
+    output_dim = config["spectral"]["architecture"]["output_dim"]
 
     
     print('Loading data...')

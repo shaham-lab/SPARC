@@ -55,6 +55,11 @@
         "scale_k": 2,
         "is_local_scale": false,
         "n_clusters": 7,
-        "patience": 10
+        "patience": 10,
+        "bsize": 100000,
+        "num_clusters": 1,
+        "num_clusters_val": 1,
+        "num_clusters_test": 1,
+        "diag_lambda": -1
     }
 }
