@@ -154,7 +154,7 @@ class SiameseTrainer:
             print("Epoch: {}/{}, Train Loss: {:.4f}, Valid Loss: {:.4f}, LR: {:.6f}".
             format(epoch + 1, self.epochs, train_loss, valid_loss, current_lr))
         
-        torch.save(self.siamese_net.state_dict(), self.weights_path)
+        # torch.save(self.siamese_net.state_dict(), self.weights_path)
         return self.siamese_net
     
     def validate(self, valid_loader: DataLoader) -> float:

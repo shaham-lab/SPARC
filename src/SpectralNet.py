@@ -34,27 +34,32 @@ class SpectralNet:
         should_use_ae = self.config["should_use_ae"]
         should_use_siamese = self.config["should_use_siamese"]
         create_weights_dir()
-
+        parts, features_batches, support_batches, y_train_batches, train_mask_batches = train
+        idx_parts, val_features_batches, val_support_batches, y_val_batches, val_mask_batches = val
         if should_use_ae:
-            parts, features_batches, support_batches, y_train_batches, train_mask_batches = train
-            idx_parts, val_features_batches, val_support_batches, y_val_batches, val_mask_batches = val
+            
             ae_trainer = AETrainer(self.config, self.device)
             self.ae_net = ae_trainer.train(features_batches, val_features_batches)
             features_batches, val_features_batches = ae_trainer.embed(features_batches, val_features_batches)
             train = parts, features_batches, support_batches, y_train_batches, train_mask_batches
             val = idx_parts, val_features_batches, val_support_batches, y_val_batches, val_mask_batches
         
-        # if should_use_siamese:
-        #     siamese_trainer = SiameseTrainer(self.config, self.device)
-        #     self.siamese_net = siamese_trainer.train(torch.cat((x_train, x_valid), 0))
-        # else:
-        #     self.siamese_net = None
+        
+        if should_use_siamese:
+            train_mask = train_mask_batches[0]
+            # val_mask = val_mask_batches[0]
+            # x = torch.cat((features_batches[0][train_mask], val_features_batches[0][val_mask]), 0)
+            x = features_batches[0][train_mask]
+            siamese_trainer = SiameseTrainer(self.config, self.device)
+            self.siamese_net = siamese_trainer.train(x)
+        else:
+            self.siamese_net = None
 
         # is_sparse = self.config["is_sparse_graph"]
         # if is_sparse:
         #     build_ann(torch.cat((x_train, x_valid), 0))
         is_sparse = False
-        spectral_trainer = SpectralTrainer(self.config, self.device, is_sparse=is_sparse)
+        spectral_trainer = SpectralTrainer(self.config, self.device, is_sparse=is_sparse, siamese_net=self.siamese_net)
         self.spec_net = spectral_trainer.train(train, val)
         
     

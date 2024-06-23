@@ -200,8 +200,8 @@ def load_graphsage_data(dataset_path, dataset_str, normalize=True):
         dtype=np.int32)
     
     is_train = np.ones((num_data), dtype=bool)
-    is_train[val_data] = False
-    is_train[test_data] = False
+    # is_train[val_data] = False
+    # is_train[test_data] = False
     train_data = np.array([n for n in range(num_data) if is_train[n]],
                           dtype=np.int32)
 
@@ -475,6 +475,8 @@ def plot_sorted_laplacian(W: torch.Tensor, y: np.ndarray):
     plt.imshow(L, cmap='hot', norm=colors.LogNorm())
     plt.imshow(L, cmap='flag')
     plt.show()
+    # save fig
+    plt.savefig('block_diagonal.png')
 
 
 def get_nearest_neighbors(X: torch.Tensor, Y: torch.Tensor = None, k: int = 3) -> tuple[np.ndarray, np.ndarray]:
@@ -598,8 +600,10 @@ def get_gaussian_kernel(D: torch.Tensor, scale, Ids: np.ndarray, device: torch.d
     if Ids is not None:
         n, k = Ids.shape
         mask = torch.zeros([n, n]).to(device=device)
-        for i in range(len(Ids)):
-            mask[i, Ids[i]] = 1
+        rows = torch.arange(n).unsqueeze(1)
+        mask[rows, Ids] = 1
+        # for i in range(len(Ids)):
+        #     mask[i, Ids[i]] = 1
         W = W * mask
     sym_W = (W + torch.t(W)) / 2.
     return sym_W
@@ -688,7 +692,7 @@ def get_affinity_matrix(X: torch.Tensor) -> torch.Tensor:
         torch.Tensor: Affinity matrix W
     """
     is_local = True
-    n_neighbors = 30
+    n_neighbors = 10
     scale_k = 15
     Dx = torch.cdist(X,X)
     Dis, indices = get_nearest_neighbors(X, k=n_neighbors + 1)

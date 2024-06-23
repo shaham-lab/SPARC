@@ -16,6 +16,7 @@ from metrics import Metrics
 from sklearn.cluster import KMeans
 from SpectralNet import SpectralNet
 from scipy.spatial.distance import cdist
+import torch.nn.functional as F
 
 SEED = 10
 
@@ -126,6 +127,59 @@ def main():
     val = (idx_parts, val_features_batches, val_support_batches, y_val_batches, val_mask_batches)
     test = (idx_parts, test_features_batches, test_support_batches, y_test_batches, test_mask_batches)
 
+    y_train = np.argmax(y_train, axis=1)
+    unique, counts = np.unique(y_train, return_counts=True)
+    print('Train:', unique, counts)
+    y_val = np.argmax(y_val, axis=1)
+    unique, counts = np.unique(y_val, return_counts=True)
+    print('Val:', unique, counts)
+    y_test = np.argmax(y_test, axis=1)
+    unique, counts = np.unique(y_test, return_counts=True)
+    print('Test:', unique, counts)
+    
+    
+    A = full_adj.todense()
+    A = A + np.eye(A.shape[0])
+    # A = np.power(A, 3)
+    A[A > 0] = 1
+    
+
+    
+    # print('mean degree:', np.mean(np.sum(A, axis=1)))
+    
+    A = torch.tensor(A, dtype=torch.float32)
+    X = torch.tensor(train_feats, dtype=torch.float32)
+    # X = A @ X
+    W = utils.get_affinity_matrix(X)
+    
+    # W = W + A
+    # W[W > 0] = 1
+    # W = A
+    W = F.normalize(W, p=1, dim=1)
+    
+    D = torch.diag(torch.sum(W, dim=1))
+    L = D - W
+    L = L.numpy()
+    eigvals, eigvecs = eigsh(L, k=10, which='SM')
+    print(eigvals)
+    kmeans = KMeans(n_clusters=n_clusters, random_state=SEED)
+    kmeans.fit(eigvecs)
+    cluster_labels = kmeans.labels_
+    
+    metrics = Metrics()
+    
+    nmi = metrics.nmi_score(cluster_labels[train_mask], y_train[train_mask])
+    acc = metrics.acc_score(cluster_labels[train_mask], y_train[train_mask], n_clusters)
+    print(f'NMI: {nmi}, ACC: {acc}')
+    exit()
+    
+    L = sort_laplacian(W, y_train)
+    
+    plt.imshow(L, cmap='hot', norm=colors.LogNorm())
+    plt.imshow(L, cmap='flag')
+    plt.show()
+    plt.savefig('block_diagonal.png')
+    # exit()
     
     spectralnet = SpectralNet(n_clusters=n_clusters, config=config)
     spectralnet.fit(train, val)
@@ -136,7 +190,32 @@ def main():
     Y = spectralnet.predict(X)
     Y = Y / np.sqrt(Y.shape[0])
     
-    np.save(f'./results/{dataset}/{output_dim}/{SEED}/spectralnet.npy', Y)
+    
+    # np.save(f'./results/{dataset}/{output_dim}/{SEED}/spectralnet.npy', Y)
+    
+    kmeans = KMeans(n_clusters=n_clusters, random_state=SEED)
+    kmeans.fit(Y)
+    cluster_labels = kmeans.labels_
+    
+    metrics = Metrics()
+    
+    nmi = metrics.nmi_score(cluster_labels[train_mask], y_train[train_mask])
+    acc = metrics.acc_score(cluster_labels[train_mask], y_train[train_mask], n_clusters)
+    print(f'NMI: {nmi}, ACC: {acc}')
+    
+    print('##################')
+    
+    nmi = metrics.nmi_score(cluster_labels[test_mask], y_test[test_mask])
+    acc = metrics.acc_score(cluster_labels[test_mask], y_test[test_mask], n_clusters)
+    print(f'Test NMI: {nmi}, Test ACC: {acc}')
+    
+    # print('##################')
+    # nmi = metrics.nmi_score(y_test, y_test)
+    # acc = metrics.acc_score(y_test, y_test, n_clusters)
+    # print(f'Perfect NMI: {nmi}, Perfect ACC: {acc}')
+    
+    
+    
     
     
 if __name__ == "__main__":

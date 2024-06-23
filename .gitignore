@@ -11,7 +11,8 @@ src/wandb
 .DS_Store
 .vscode
 cached_*
-data
-metis-*
+data/reddit
+metis-5.1.0
 weights
 *.npy
+results

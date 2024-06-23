@@ -12,7 +12,7 @@
             "hidden_dim3": 2048,
             "output_dim": 10
         },
-        "epochs": 3,
+        "epochs": 150,
         "n_samples": 70000,
         "lr": 1e-3,
         "lr_decay": 0.1,
@@ -28,30 +28,30 @@
             "hidden_dim3": 512,
             "output_dim": 10
         },
-        "epochs": 3,
+        "epochs": 150,
         "n_samples": 70000,
         "lr": 1e-3,
         "lr_decay": 0.1,
         "min_lr": 1e-7,
         "patience": 10,
-        "n_neighbors": 2,
+        "n_neighbors": 5,
         "use_approx": false,
-        "batch_size": 128
+        "batch_size": 1024
     },
     "spectral": {
         "architecture": {
             "n_layers": 5,
-            "hidden_dim1": 1024,
-            "hidden_dim2": 1024,
-            "hidden_dim3": 1024,
-            "output_dim": 1024
+            "hidden_dim1": 256,
+            "hidden_dim2": 128,
+            "hidden_dim3": 64,
+            "output_dim": 3
         },
         "epochs": 150,
         "lr": 1e-3,
         "lr_decay": 0.1,
         "min_lr": 1e-10,
         "batch_size": 8000,
-        "n_neighbors": 8,
+        "n_neighbors": 20,
         "scale_k": 2,
         "is_local_scale": false,
         "n_clusters": 3,

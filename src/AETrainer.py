@@ -97,7 +97,7 @@ class AETrainer:
                 train_loss += loss.item()
             
             train_loss /= batches
-            valid_loss = self.validate(self.val_features_batches)
+            valid_loss = self.validate()
             self.scheduler.step(valid_loss)
             current_lr = self.optimizer.param_groups[0]["lr"]
 
@@ -105,10 +105,10 @@ class AETrainer:
             print("Epoch: {}/{}, Train Loss: {:.4f}, Valid Loss: {:.4f}, LR: {:.6f}".
             format(epoch + 1, self.epochs, train_loss, valid_loss, current_lr))
         
-        torch.save(self.ae_net.state_dict(), self.weights_path)
+        # torch.save(self.ae_net.state_dict(), self.weights_path)
         return self.ae_net
     
-    def validate(self, valid_loader: DataLoader) -> float:
+    def validate(self) -> float:
         """
         This function validates the autoencoder on the given data during the training process.
 
@@ -118,18 +118,18 @@ class AETrainer:
         Returns:
             float: the validation loss
         """
-
+        batches_val = len(self.val_features_batches)
         self.ae_net.eval()
         valid_loss = 0.0
         with torch.no_grad():
-            for pid in range(len(valid_loader)):
+            for pid in range(batches_val):
                 batch_x = self.val_features_batches[pid]
                 batch_x = batch_x.to(self.device)
                 batch_x = batch_x.view(batch_x.size(0), -1)
                 output = self.ae_net(batch_x)
                 loss = self.criterion(output, batch_x)
                 valid_loss += loss.item()
-        valid_loss /= len(valid_loader)
+        valid_loss /= batches_val
         return valid_loss
 
     def embed(self, features_batches, val_features_batches):

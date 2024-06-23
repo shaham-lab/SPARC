@@ -92,10 +92,6 @@ class SpectralNetModel(nn.Module):
         """
 
         for layer in self.layers:
-            # print(x.dtype)
-            # print(layer[0].weight.dtype)
-            # print(x.device)
-            # print(layer[0].weight.device)
             x = layer(x)
             
 
@@ -129,6 +125,13 @@ class SpectralNetLoss(nn.Module):
             torch.Tensor: The loss
         """
         m = Y.size(0)
+        if is_normalized:
+            D = torch.sum(W, dim=1)
+            Y = Y / torch.sqrt(D)[:, None]
+
+        Dy = torch.cdist(Y, Y)
+        loss = torch.sum(W * Dy.pow(2)) / (2 * m)
+        return loss
         
         # try:
         #     if random.random() < 0.01:
@@ -152,12 +155,12 @@ class SpectralNetLoss(nn.Module):
         # return loss
 
         # # if is_normalized:
-        d = torch.sum(W, dim=1)
-        Y = Y / torch.sqrt(d[:, None])
+        # d = torch.sum(W, dim=1)
+        # Y = Y / torch.sqrt(d[:, None])
 
-        Dy = torch.cdist(Y, Y)
-        loss = torch.sum(W * Dy.pow(2)) / (2 * m)
-        return loss
+        # Dy = torch.cdist(Y, Y)
+        # loss = torch.sum(W * Dy.pow(2)) / (2 * m)
+        # return loss
 
 
         # D_inv_sqrt = torch.diag(torch.sum(W, dim=1) ** (-0.5))
@@ -170,7 +173,7 @@ class SpectralNetLoss(nn.Module):
 
 
 class SpectralTrainer:
-    def __init__(self, config: dict, device: torch.device, is_sparse: bool = False):
+    def __init__(self, config: dict, device: torch.device, is_sparse: bool = False, siamese_net: nn.Module = None):
         """
         This class is responsible for training the SpectralNet model.
 
@@ -185,7 +188,7 @@ class SpectralTrainer:
         self.device = device
         self.is_sparse = is_sparse
         self.spectral_config = config["spectral"]
-
+        self.siamese_net = siamese_net
         self.lr = self.spectral_config["lr"]
         self.epochs = self.spectral_config["epochs"]
         self.lr_decay = self.spectral_config["lr_decay"]
@@ -275,16 +278,17 @@ class SpectralTrainer:
                 # Use preprocessed batch data
                 features_b = self.features_batches[pid].to(self.device)                
                 support_b = self.support_batches[pid]
-                # y_train_b = self.y_train_batches[pid]
+                y_train_b = self.y_train_batches[pid]
+                
+                y_train_b = torch.argmax(y_train_b, dim=1)
                 # train_mask_b = self.train_mask_batches[pid]
                 # indices = torch.LongTensor(support_b[0])
                 # values = torch.FloatTensor(support_b[1])
                 # size = support_b[2]
                 # W = torch.sparse.FloatTensor(indices.t(), values, size).to_dense().to(self.device) + torch.ones(size) * 0.01
-                W = self._get_support_matrix(support_b)
+                
                 perm = np.random.permutation(len(features_b))
                 features_b = features_b[perm]
-                W = W[perm][:, perm]
 
 
                 features_b_2 = self.features_batches[pid_2].to(self.device)
@@ -302,8 +306,53 @@ class SpectralTrainer:
                 self.spectral_net.train()
                 self.optimizer.zero_grad()
 
+                W = self._get_support_matrix(support_b)
+                W = W[perm][:, perm]
+                
+                # W_ = W.detach().cpu().numpy()
+                # W_[W_ > 0] = 1
+                # L = sort_laplacian(W_, y_train_b[perm])
+                # import matplotlib.pyplot as plt
+                # plt.imshow(L, cmap='hot', norm=colors.LogNorm())
+                # plt.imshow(L, cmap='flag')
+                # plt.show()
+                # plt.savefig('block_diagonal.png')
+                
 
                 Y = self.spectral_net(features_b, should_update_orth_weights=False)
+                
+
+                
+                if self.siamese_net is not None:
+                    with torch.no_grad():
+                        features_b = self.siamese_net.forward_once(features_b)
+                
+                W_2 = self._get_affinity_matrix(features_b)
+                
+                # W_2_ = W_2.detach().cpu().numpy()
+                # W_2_[W_2_ > 0] = 1
+                # L = sort_laplacian(W_2_, y_train_b[perm])
+                # plt.imshow(L, cmap='hot', norm=colors.LogNorm())
+                # plt.imshow(L, cmap='flag')
+                # plt.show()
+                # plt.savefig('block_diagonal_2.png')
+                
+                
+                # W = 0.1* W + 0.9 *  W_2
+                # W = 0.9 * W + 0.1 * W_2
+                # W = 0.1* (W @ W) + 0.9 *  (W_2)
+                
+                W[W > 0] = 1
+                W = F.normalize(W, p=2, dim=1)
+                # W_2[W_2 > 0] = 1
+                
+                
+                
+                W = W + W_2
+                # normalize
+                W = F.normalize(W, p=2, dim=1)
+                
+
 
                 # # W = self.get_adjacency_matrix(indices_grad)
                 # # W = W.to(device=self.device)
@@ -348,9 +397,18 @@ class SpectralTrainer:
                     y_val_b = self.y_val_batches[pid]
                     val_mask_b = self.val_mask_batches[pid]
 
-                    W = self._get_support_matrix(support_b)
-
                     Y = self.spectral_net(features_b, should_update_orth_weights=False)
+                    
+                    W = self._get_support_matrix(support_b)
+                    
+                    if self.siamese_net is not None:
+                        with torch.no_grad():
+                            features_b = self.siamese_net.forward_once(features_b)
+                    
+                    W_2 = self._get_affinity_matrix(features_b)
+                    W = W + W_2
+
+                    
 
                     loss = self.criterion(W, Y, is_normalized=True)
                     valid_loss += loss.item()
@@ -485,6 +543,8 @@ class SpectralTrainer:
         values = torch.FloatTensor(support[1])
         size = support[2]
         W = torch.sparse.FloatTensor(indices.t(), values, size).to_dense() # + torch.ones(size) * 1e-5
+        # W = W + W.T
+        # W = W @ W
         # normalize
         # W = F.normalize(W, p=2, dim=1)
         
@@ -639,6 +699,8 @@ class SpectralTrainer:
         Dis, indices = get_nearest_neighbors(X, k=n_neighbors + 1)
         scale = compute_scale(Dis, k=scale_k, is_local=is_local)
         W = get_gaussian_kernel(Dx, scale, indices, device=self.device, is_local=is_local)
+        # normalize
+        W = F.normalize(W, p=2, dim=1)
         return W
 
     def matrix_from_dict(self, indices):
@@ -681,7 +743,8 @@ class SpectralTrainer:
         """
         This function saves the model.
         """
-        torch.save(self.spectral_net.state_dict(), self.weights_path)
+        # torch.save(self.spectral_net.state_dict(), self.weights_path)
+        pass
 
     def _get_neighbors(self, indices_grad):
         """
