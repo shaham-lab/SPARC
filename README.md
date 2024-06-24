@@ -11,8 +11,7 @@ To run GraphSpectralNet, you'll need Python 3.x and to run the requirements.txt 
 ```bash
 pip3 install -r requirements.txt
 ```
-Install <a href=" https://stackoverflow.com/questions/54326406/how-to-install-metis-library-for-python
-">METIS</a>
+Install [METIS](https://stackoverflow.com/questions/54326406/how-to-install-metis-library-for-python)
 
 #### Input format
 As input, at minimum the code requires that a --train_prefix option is specified which specifies the following data files:
