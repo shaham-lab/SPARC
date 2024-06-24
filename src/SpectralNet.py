@@ -81,7 +81,7 @@ class SpectralNet:
             X = self.ae_net.encoder(X)
         X = X.to(self.device)
         self.embeddings_ = self.spec_net(X, should_update_orth_weights = False).detach().cpu().numpy()
-        self.embeddings_ = self.embeddings_ @ self.spec_net.rotation_matrix
+        # self.embeddings_ = self.embeddings_ @ self.spec_net.rotation_matrix
         
         # cluster_assignments = self._get_clusters_by_kmeans(self.embeddings_)
         # return cluster_assignments

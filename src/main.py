@@ -92,7 +92,7 @@ def main():
     
     (train_adj, full_adj, train_feats, test_feats, y_train, y_val, y_test,
      train_mask, val_mask, test_mask, _, val_data, test_data, num_data,
-     visible_data) = load_data('/data', dataset, True)
+     visible_data) = load_data('/data', dataset, False)
 
     try:
         parts = torch.load(f'./cached_partition/{dataset}/{SEED}/parts.pt')
@@ -145,7 +145,7 @@ def main():
     
 
     
-    # print('mean degree:', np.mean(np.sum(A, axis=1)))
+    # # print('mean degree:', np.mean(np.sum(A, axis=1)))
     
     A = torch.tensor(A, dtype=torch.float32)
     X = torch.tensor(train_feats, dtype=torch.float32)
@@ -153,33 +153,39 @@ def main():
     W = utils.get_affinity_matrix(X)
     
     # W = W + A
-    # W[W > 0] = 1
-    # W = A
-    W = F.normalize(W, p=1, dim=1)
+    # # W[W > 0] = 1
+    # # W = A
+    # W = F.normalize(W, p=1, dim=1)
+    W = sort_laplacian(W, y_train)
+    # # D = torch.diag(torch.sum(W, dim=1))
+    # # L = D - W
+    # # L = L.numpy()
     
-    D = torch.diag(torch.sum(W, dim=1))
-    L = D - W
-    L = L.numpy()
-    eigvals, eigvecs = eigsh(L, k=10, which='SM')
-    print(eigvals)
-    kmeans = KMeans(n_clusters=n_clusters, random_state=SEED)
-    kmeans.fit(eigvecs)
-    cluster_labels = kmeans.labels_
-    
-    metrics = Metrics()
-    
-    nmi = metrics.nmi_score(cluster_labels[train_mask], y_train[train_mask])
-    acc = metrics.acc_score(cluster_labels[train_mask], y_train[train_mask], n_clusters)
-    print(f'NMI: {nmi}, ACC: {acc}')
-    exit()
-    
-    L = sort_laplacian(W, y_train)
-    
-    plt.imshow(L, cmap='hot', norm=colors.LogNorm())
-    plt.imshow(L, cmap='flag')
+    plt.imshow(W, cmap='hot', norm=colors.LogNorm())
     plt.show()
-    plt.savefig('block_diagonal.png')
+    plt.savefig('laplacian.png')
+    
+    
+    # eigvals, eigvecs = eigsh(W, k=10, which='SM')
+    # print(eigvals)
+    # kmeans = KMeans(n_clusters=n_clusters, random_state=SEED)
+    # kmeans.fit(eigvecs)
+    # cluster_labels = kmeans.labels_
+    
+    # metrics = Metrics()
+    
+    # nmi = metrics.nmi_score(cluster_labels[train_mask], y_train[train_mask])
+    # acc = metrics.acc_score(cluster_labels[train_mask], y_train[train_mask], n_clusters)
+    # print(f'NMI: {nmi}, ACC: {acc}')
     # exit()
+    
+    # L = sort_laplacian(W, y_train)
+    
+    # plt.imshow(L, cmap='hot', norm=colors.LogNorm())
+    # plt.imshow(L, cmap='flag')
+    # plt.show()
+    # plt.savefig('block_diagonal.png')
+    # # exit()
     
     spectralnet = SpectralNet(n_clusters=n_clusters, config=config)
     spectralnet.fit(train, val)
