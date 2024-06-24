@@ -91,7 +91,7 @@ def main():
     
     (train_adj, full_adj, train_feats, test_feats, y_train, y_val, y_test,
      train_mask, val_mask, test_mask, _, val_data, test_data, num_data,
-     visible_data) = load_data('/data', dataset, True)
+     visible_data) = load_data('/data', dataset, False)
 
     try:
         parts = torch.load(f'./cached_partition/{dataset}/{SEED}/parts.pt')

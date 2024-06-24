@@ -1,0 +1,13 @@
+dgl==2.1.0
+h5py
+idna
+matplotlib
+munkres==1.1.4
+networkx
+numpy
+scikit-learn
+scipy
+setuptools==68.2.2
+torch==2.2.1
+torchvision==0.17.1
+tqdm
