@@ -691,9 +691,9 @@ def get_affinity_matrix(X: torch.Tensor) -> torch.Tensor:
     Returns:
         torch.Tensor: Affinity matrix W
     """
-    is_local = True
-    n_neighbors = 2
-    scale_k = 1
+    is_local = False
+    n_neighbors = 10
+    scale_k = 5
     Dx = torch.cdist(X,X)
     Dis, indices = get_nearest_neighbors(X, k=n_neighbors + 1)
     scale = compute_scale(Dis, k=scale_k, is_local=is_local)

@@ -311,12 +311,12 @@ class SpectralTrainer:
                 
                 W_ = W.detach().cpu().numpy()
                 W_[W_ > 0] = 1
-                L = sort_laplacian(W_, y_train_b[perm])
-                import matplotlib.pyplot as plt
-                plt.imshow(L, cmap='hot', norm=colors.LogNorm())
-                plt.imshow(L, cmap='flag')
-                plt.show()
-                plt.savefig('block_diagonal.png')
+                # L = sort_laplacian(W_, y_train_b[perm])
+                # import matplotlib.pyplot as plt
+                # plt.imshow(L, cmap='hot', norm=colors.LogNorm())
+                # plt.imshow(L, cmap='flag')
+                # plt.show()
+                # plt.savefig('block_diagonal.png')
                 
 
                 Y = self.spectral_net(features_b, should_update_orth_weights=False)
@@ -330,14 +330,13 @@ class SpectralTrainer:
                 W_2 = self._get_affinity_matrix(features_b)
                 # W_2 = utils.get_affinity_matrix(features_b)
                 
-                W_2_ = W_2.detach().cpu().numpy()
-                # W_2_ = np.log(W_2_ + 1)
-                # W_2_[W_2_ > 0] = 1
-                W_2_ = sort_laplacian(W_2_, y_train_b[perm])
-                plt.imshow(W_2_, cmap='hot', norm=colors.LogNorm())
-                plt.show()
-                plt.savefig('block_diagonal_2.png')
-                
+                # W_2_ = W_2.detach().cpu().numpy()
+                # # W_2_ = np.log(W_2_ + 1)
+                # # W_2_[W_2_ > 0] = 1
+                # W_2_ = sort_laplacian(W_2_, y_train_b[perm])
+                # plt.imshow(W_2_, cmap='hot', norm=colors.LogNorm())
+                # plt.show()
+                # plt.savefig('block_diagonal_2.png')
                 
                 # W = 0.1* W + 0.9 *  W_2
                 # W = 0.9 * W + 0.1 * W_2
@@ -350,6 +349,8 @@ class SpectralTrainer:
                 
                 
                 W = W + W_2
+                
+                
                 # normalize
                 # W = F.normalize(W, p=2, dim=1)
                 

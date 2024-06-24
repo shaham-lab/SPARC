@@ -17,6 +17,8 @@ from sklearn.cluster import KMeans
 from SpectralNet import SpectralNet
 from scipy.spatial.distance import cdist
 import torch.nn.functional as F
+from sklearn.cluster import SpectralClustering
+
 
 SEED = 10
 
@@ -138,32 +140,70 @@ def main():
     print('Test:', unique, counts)
     
     
-    A = full_adj.todense()
-    A = A + np.eye(A.shape[0])
-    # A = np.power(A, 3)
-    A[A > 0] = 1
+    # A = full_adj.todense()
+    # A = A + np.eye(A.shape[0])
+    # # A = np.power(A, 3)
+    # # A[A > 0] = 1
     
 
     
-    # # print('mean degree:', np.mean(np.sum(A, axis=1)))
+    # # # print('mean degree:', np.mean(np.sum(A, axis=1)))
     
-    A = torch.tensor(A, dtype=torch.float32)
-    X = torch.tensor(train_feats, dtype=torch.float32)
-    # X = A @ X
-    W = utils.get_affinity_matrix(X)
+    # A = torch.tensor(A, dtype=torch.float32)
+    # X = torch.tensor(train_feats, dtype=torch.float32)
+    # W = utils.get_affinity_matrix(X)
+    
+    # # W = F.normalize(W, p=1, dim=1)
+    # # A = F.normalize(A, p=1, dim=1)
+    
+    # A = A + W
+    
+    # # spectral clustering
+    # spectral_clustering = SpectralClustering(n_clusters=n_clusters, affinity='precomputed', random_state=SEED)
+    # cluster_labels = spectral_clustering.fit_predict(A)
+    
+    
+    # metrics = Metrics()
+    
+    # nmi = metrics.nmi_score(cluster_labels[train_mask], y_train[train_mask])
+    # acc = metrics.acc_score(cluster_labels[train_mask], y_train[train_mask], n_clusters)
+    # print(f'NMI: {nmi}, ACC: {acc}')
+    # exit()
+    
+    
+    # # X = A @ X
+    # W = utils.get_affinity_matrix(X)
     
     # W = W + A
-    # # W[W > 0] = 1
-    # # W = A
-    # W = F.normalize(W, p=1, dim=1)
-    W = sort_laplacian(W, y_train)
-    # # D = torch.diag(torch.sum(W, dim=1))
-    # # L = D - W
-    # # L = L.numpy()
+    # # # W[W > 0] = 1
+    # # # W = A
+    # # W = F.normalize(W, p=1, dim=1)
+    # # W = sort_laplacian(W, y_train)
+    # D = torch.diag(torch.sum(W, dim=1))
+    # L = D - W
+    # V, U = torch.linalg.eig(L)
+    # V = V.real
+    # U = U.real
+    # idx = V.argsort()
+    # V = V[idx]
+    # U = U[:, idx]
+    # print(V)
+    # U = U[:, 1:output_dim+1]
     
-    plt.imshow(W, cmap='hot', norm=colors.LogNorm())
-    plt.show()
-    plt.savefig('laplacian.png')
+    # kmeans = KMeans(n_clusters=n_clusters, random_state=SEED)
+    # kmeans.fit(U)
+    # cluster_labels = kmeans.labels_
+    
+    # metrics = Metrics()
+    
+    # nmi = metrics.nmi_score(cluster_labels[train_mask], y_train[train_mask])
+    # acc = metrics.acc_score(cluster_labels[train_mask], y_train[train_mask], n_clusters)
+    # print(f'NMI: {nmi}, ACC: {acc}')
+    # exit()
+    
+    # plt.imshow(W, cmap='hot', norm=colors.LogNorm())
+    # plt.show()
+    # plt.savefig('laplacian.png')
     
     
     # eigvals, eigvecs = eigsh(W, k=10, which='SM')
