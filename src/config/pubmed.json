@@ -3,7 +3,7 @@
     "n_clusters": 3,
     "is_sparse_graph": false,
     "should_use_ae": false,
-    "should_use_siamese": true,
+    "should_use_siamese": false,
     "should_check_generalization": true,
     "ae": {
         "architecture": {
@@ -44,7 +44,7 @@
             "hidden_dim1": 256,
             "hidden_dim2": 128,
             "hidden_dim3": 64,
-            "output_dim": 3
+            "output_dim": 32
         },
         "epochs": 150,
         "lr": 1e-3,
@@ -53,10 +53,10 @@
         "batch_size": 8000,
         "n_neighbors": 2,
         "scale_k": 1,
-        "is_local_scale": true,
+        "is_local_scale": false,
         "n_clusters": 3,
         "patience": 10,
-        "bsize": 100000,
+        "bsize": 15,
         "num_clusters": 1,
         "num_clusters_val": 1,
         "num_clusters_test": 1,

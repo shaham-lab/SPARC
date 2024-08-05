@@ -42,6 +42,7 @@ def get_even_clusters(X, n_clusters):
 def partition_graph(adj, idx_nodes, num_clusters):
     """partition a graph by METIS."""
 
+
     start_time = time.time()
     num_nodes = len(idx_nodes)
     num_all_nodes = adj.shape[0]
@@ -67,6 +68,7 @@ def partition_graph(adj, idx_nodes, num_clusters):
     if num_clusters > 1:
         # groups = get_even_clusters(em, num_clusters)
         _, groups = metis.part_graph(train_adj_lists, num_clusters, seed=1)
+        # _, groups_2 = metis.part_graph(train_adj_lists, num_clusters, seed=2)
         # random.shuffle(groups)
     else:
         groups = [0] * num_nodes
@@ -79,6 +81,7 @@ def partition_graph(adj, idx_nodes, num_clusters):
     for nd_idx in range(num_nodes):
         gp_idx = groups[nd_idx]
         nd_orig_idx = idx_nodes[nd_idx]
+        
         parts[gp_idx].append(nd_orig_idx)
         for nb_orig_idx in adj[nd_orig_idx].indices:
             nb_idx = train_ord_map[nb_orig_idx]

@@ -19,6 +19,7 @@ class SpectralNet:
         self.config = config
         self.embeddings_ = None
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # self.device = torch.device("cpu")
         print(f"Using {self.device} device")
 
     def fit(self, train, val):

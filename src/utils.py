@@ -9,9 +9,9 @@ import matplotlib.colors as colors
 import scipy.sparse as sp
 import sklearn
 from networkx.readwrite import json_graph
-
 # from annoy import AnnoyIndex
 from sklearn.neighbors import NearestNeighbors
+import torch.nn.functional as F
 
 import partition_utils
 
@@ -29,6 +29,7 @@ def normalize_adj(adj):
     d_mat_inv = sp.diags(d_inv, 0)
     adj = d_mat_inv.dot(adj)
     return adj
+
 
 def normalize_adj_diag_enhance(adj, diag_lambda):
     """Normalization by  A'=(D+I)^{-1}(A+I), A'=A'+lambda*diag(A')."""
@@ -80,6 +81,7 @@ def preprocess_multicluster(adj,
         pt = parts[st]
         for pt_idx in range(st + 1, min(st + block_size, num_clusters)):
             pt = np.concatenate((pt, parts[pt_idx]), axis=0)
+            pt = pt.astype(np.int32)
         features_batches.append(torch.tensor(features[pt, :]).float())
         y_train_batches.append(torch.tensor(y_train[pt, :]).float())
         support_now = adj[pt, :][:, pt]
@@ -113,6 +115,7 @@ def preprocess(adj,
                                                     num_clusters)
     if diag_lambda == -1:
         part_adj = normalize_adj(part_adj)
+        # part_adj = part_adj
     else:
         part_adj = normalize_adj_diag_enhance(part_adj, diag_lambda)
     parts = [np.array(pt) for pt in parts]
@@ -137,7 +140,7 @@ def preprocess(adj,
     return (parts, features_batches, support_batches, y_train_batches,
           train_mask_batches)
 
-def load_graphsage_data(dataset_path, dataset_str, normalize=True):
+def load_graphsage_data(dataset_path, dataset_str, normalize=False):
     """Load GraphSAGE data."""
     start_time = time.time()
 
@@ -239,23 +242,61 @@ def load_graphsage_data(dataset_path, dataset_str, normalize=True):
         scaler.fit(train_feats)
         feats = scaler.transform(feats)
 
-    def _construct_adj(edges):
+    def _construct_adj(edges, feats=None):
         # print(edges.shape)
         adj = sp.csr_matrix((np.ones(
             (edges.shape[0]), dtype=np.float32), (edges[:, 0], edges[:, 1])),
             shape=(num_data, num_data))
         adj += adj.transpose()
-        adj += sp.eye(num_data)
+        # adj += sp.eye(num_data)
+        # adj = adj + adj @ adj + adj @ adj @ adj + adj @ adj @ adj @ adj + adj @ adj @ adj @ adj @ adj
+        # set adj diagonal to 0
+        # adj.setdiag(10)
+        # D_sqrt = sp.diags(np.power(np.array(adj.sum(1)), -0.5).flatten())
+        # adj = D_sqrt @ adj @ D_sqrt
+        # adj += sp.eye(num_data)
+        
+        if feats is not None:
+            adj = adj.todense()
+            X = adj @ feats + feats
+            X = torch.tensor(X)
+            A = get_affinity_matrix_param(X, is_local=True, n_neighbors=4, scale_k=1)
+            # set diagonal to 0
+            A = A - torch.diag(torch.diag(A))
+            
+            # A to sparse
+            adj = sp.csr_matrix(A)
+        
+
+
+
         # adj = adj @ adj 
         # binarize the adjacency matrix to 1 and 0
         # adj[adj > 0] = 1
         return adj
 
-    train_adj = _construct_adj(train_edges)
-    full_adj = _construct_adj(edges)
     
     train_feats = feats[train_data]
     test_feats = feats
+    
+    train_adj = _construct_adj(train_edges)
+    full_adj = _construct_adj(edges)
+
+
+    ##############
+    # A = full_adj.todense()
+    # labels_ = np.argmax(labels, axis=1)
+    # A_cheat = np.zeros(A.shape)
+    # for label in range(max(labels_)):
+    #     idx = (labels_ == label).nonzero().view(-1)
+    #     for i in idx:
+    #         for j in idx:
+    #             A_cheat[i, j] = 1
+    #
+    # A_cheat = A_cheat / 10 + A + torch.eye(A.shape[0])
+    #
+    # A_cheat = sp.csr_matrix(A_cheat)
+    #######################
 
     # print('Loaded data in {:.2f} seconds'.format(time.time() - start_time))
     return num_data, train_adj, full_adj, feats, train_feats, test_feats, labels, train_data, val_data, test_data
@@ -459,7 +500,9 @@ def plot_laplacian_eigenvectors(V: np.ndarray, y: np.ndarray):
     rang = range(len(y))
     plt.plot(rang, V)
     plt.show()
-    return plt
+    plt.savefig('eigenvectors.png')
+    plt.clf()
+    return
 
 
 def plot_sorted_laplacian(W: torch.Tensor, y: np.ndarray):
@@ -501,6 +544,9 @@ def get_nearest_neighbors(X: torch.Tensor, Y: torch.Tensor = None, k: int = 3) -
     Y = Y.cpu().detach().numpy()
     nbrs = NearestNeighbors(n_neighbors=k).fit(Y)
     Dis, Ids = nbrs.kneighbors(X)
+    # remove self
+    Dis = Dis[:, 1:]
+    Ids = Ids[:, 1:]
     return Dis, Ids
 
 
@@ -600,10 +646,15 @@ def get_gaussian_kernel(D: torch.Tensor, scale, Ids: np.ndarray, device: torch.d
     if Ids is not None:
         n, k = Ids.shape
         mask = torch.zeros([n, n]).to(device=device)
+        
+        # mask2 = torch.zeros([n, n]).to(device=device)
+        
         rows = torch.arange(n).unsqueeze(1)
         mask[rows, Ids] = 1
+        
         # for i in range(len(Ids)):
-        #     mask[i, Ids[i]] = 1
+        #     mask2[i, Ids[i]] = 1
+        
         W = W * mask
     sym_W = (W + torch.t(W)) / 2.
     return sym_W
@@ -691,12 +742,86 @@ def get_affinity_matrix(X: torch.Tensor) -> torch.Tensor:
     Returns:
         torch.Tensor: Affinity matrix W
     """
-    is_local = False
-    n_neighbors = 10
-    scale_k = 5
+    is_local = True
+    n_neighbors = 8
+    scale_k = 2
     Dx = torch.cdist(X,X)
     Dis, indices = get_nearest_neighbors(X, k=n_neighbors + 1)
     scale = compute_scale(Dis, k=scale_k, is_local=is_local)
     W = get_gaussian_kernel(Dx, scale, indices, device=torch.device("cpu"), is_local=is_local)
     return W
 
+
+def get_affinity_matrix_param(X: torch.Tensor, is_local, n_neighbors, scale_k) -> torch.Tensor:
+    """
+    Computes the affinity matrix W
+
+    Args:
+        X (torch.Tensor):  Data
+        is_local:  Determines whether the scale is local or global
+        n_neighbors:  Number of nearest neighbors
+        scale_k:  Scale parameter
+
+    Returns:
+        torch.Tensor: Affinity matrix W
+    """
+    Dx = torch.cdist(X,X)
+    Dis, indices = get_nearest_neighbors(X, k=n_neighbors + 1)
+    scale = compute_scale(Dis, k=scale_k, is_local=is_local)
+    W = get_gaussian_kernel(Dx, scale, indices, device=torch.device("cpu"), is_local=is_local)
+    return W
+
+
+def find_params(X, y):
+    """
+    Finds the best parameters for the Gaussian kernel
+
+    Args:
+        X:  Data
+        y:  True labels
+
+    Returns:
+        tuple:  Best parameters
+    """
+
+    best_score = 0
+    best_params = (0, 0, 0)
+    for is_local in [True, False]:
+        for n_neighbors in [2, 3, 4, 5]:
+            for scale_k in [2, 3, 4, 5]:
+                W = get_affinity_matrix_param(X, is_local, n_neighbors, scale_k)
+                W = W.detach().cpu().numpy()
+                score = modularity_score(W, y)
+                if score > best_score:
+                    best_score = score
+                    best_params = (is_local, n_neighbors, scale_k)
+                    print('Best params:', best_params)
+                
+    return best_params
+
+
+def modularity_score(W, labels):
+    m = np.sum(W)
+    Q = 0.0
+    for i in range(W.shape[0]):
+        for j in range(W.shape[1]):
+            if labels[i] == labels[j]:
+                Q += W[i, j] - (np.sum(W[i, :]) * np.sum(W[:, j]) / m)
+    Q /= m
+    return Q
+
+
+def symmetric_normalize(W):
+    """
+    Normalizes the affinity matrix W
+
+    Args:
+        W:  Affinity matrix
+
+    Returns:
+        Normalized affinity matrix
+    """
+
+    W = F.normalize(W, p=1, dim=1)
+    W = (W + W.T) / 2.
+    return W

@@ -8,8 +8,173 @@ import scipy.sparse as sp
 from pathlib import Path
 import torch
 from scipy.sparse import coo_matrix, csr_matrix
+from sklearn.datasets import make_moons
+import matplotlib.pyplot as plt
+from sklearn.neighbors import NearestNeighbors
 
 
+def get_nearest_neighbors(X: torch.Tensor, Y: torch.Tensor = None, k: int = 3) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Computes the distances and the indices of the
+    k nearest neighbors of each data point
+
+    Args:
+        X:              Batch of data points
+        Y (optional):   Defaults to None.
+        k:              Number of nearest neighbors to calculate. Defaults to 3.
+
+    Returns:
+        Distances and indices of each datapoint
+    """
+
+    if Y is None:
+        Y = X
+    if len(X) < k:
+        k = len(X)
+    X = X.cpu().detach().numpy()
+    Y = Y.cpu().detach().numpy()
+    nbrs = NearestNeighbors(n_neighbors=k).fit(Y)
+    Dis, Ids = nbrs.kneighbors(X)
+    return Dis, Ids
+
+
+def compute_scale(Dis: np.ndarray, k: int = 2, med: bool = True, is_local: bool = True) -> np.ndarray:
+    """
+    Computes the scale for the Gaussian similarity function
+
+    Args:
+        Dis:        Distances of the k nearest neighbors of each data point.
+        k:          Number of nearest neighbors. Defaults to 2.
+        med:        Scale calculation method. Can be calculated by the median distance
+                    from a data point to its neighbors, or by the maximum distance. 
+        is_local:   Local distance (different for each data point), or global distance. Defaults to local.
+
+    Returns:
+        scale (global or local)
+    """
+
+    if is_local:
+        if not med:
+            scale = np.max(Dis, axis=1)
+        else:
+            scale = np.median(Dis, axis=1)
+    else:
+        if not med:
+            scale = np.max(Dis[:, k - 1])
+        else:
+            scale = np.median(Dis[:, k - 1])
+    return scale
+
+
+def get_gaussian_kernel(D: torch.Tensor, scale, Ids: np.ndarray, device: torch.device, is_local: bool = True) -> torch.Tensor:   
+    """
+    Computes the Gaussian similarity function 
+    according to a given distance matrix D and a given scale
+
+    Args:
+        D:      Distance matrix 
+        scale:  scale
+        Ids:    Indices of the k nearest neighbors of each sample
+        device: Defaults to torch.device("cpu")
+        is_local:  Determines whether the given scale is global or local 
+
+    Returns:
+        Matrix W with Gaussian similarities
+    """
+
+    if not is_local:
+        # global scale
+        W = torch.exp(-torch.pow(D, 2) / (scale ** 2))
+    else:
+        # local scales
+        W = torch.exp(-torch.pow(D, 2).to(device) / (torch.tensor(scale).float().to(device).clamp_min(1e-7) ** 2))
+    if Ids is not None:
+        n, k = Ids.shape
+        mask = torch.zeros([n, n]).to(device=device)
+        
+        # mask2 = torch.zeros([n, n]).to(device=device)
+        
+        rows = torch.arange(n).unsqueeze(1)
+        mask[rows, Ids] = 1
+        
+        # for i in range(len(Ids)):
+        #     mask2[i, Ids[i]] = 1
+        
+        W = W * mask
+    sym_W = (W + torch.t(W)) / 2.
+    return sym_W
+
+
+
+def get_affinity_matrix(X: torch.Tensor) -> torch.Tensor:
+    """
+    Computes the affinity matrix W
+
+    Args:
+        X (torch.Tensor):  Data
+
+    Returns:
+        torch.Tensor: Affinity matrix W
+    """
+    is_local = True
+    n_neighbors = 8
+    scale_k = 5
+    Dx = torch.cdist(X,X)
+    Dis, indices = get_nearest_neighbors(X, k=n_neighbors + 1)
+    scale = compute_scale(Dis, k=scale_k, is_local=is_local)
+    W = get_gaussian_kernel(Dx, scale, indices, device=torch.device("cpu"), is_local=is_local)
+    return W
+
+
+def load_twomoons():
+    n = 3000
+    mean_deg = 3
+    X, y = make_moons(n_samples=n, noise=0.05, random_state=42)
+
+    # A = np.zeros((n, n))
+    # num_edges = int(mean_deg * n / 2)
+
+    # # Randomly add edges until the desired mean degree is achieved
+    # edges_added = 0
+    # while edges_added < num_edges:
+    #     i = np.random.randint(0, n)
+    #     j = np.random.randint(0, n)
+    #     if i != j and A[i, j] == 0:
+    #         A[i, j] = 1
+    #         # A[j, i] = 1
+    #         edges_added += 1
+    # A_ = A + A.T
+    # A_ = A_ + np.eye(n)
+    # A_inv = np.linalg.pinv(A_)
+
+    # X = A_inv @ X
+
+
+    # A_r = A + A.T + np.eye(n)
+    # X_r = A_r @ X
+    
+    # plt.scatter(X_r[:, 0], X_r[:, 1], c=y)
+    # plt.savefig('twomoons.png')
+    # plt.close
+    # exit() 
+    
+    X = torch.FloatTensor(X)
+    
+    A = get_affinity_matrix(X)
+    
+    
+    A = torch.FloatTensor(A)
+    y = torch.LongTensor(y)
+    
+    
+    train_size = 0.85 * n
+    val_size = 0.05 * n
+    idx = np.random.permutation(n)
+    idx_train = idx[:int(train_size)]
+    idx_val = idx[int(train_size):int(train_size + val_size)]
+    idx_test = idx[int(train_size + val_size):]
+    
+    return A, X, y, idx_train, idx_val, idx_test
 
 
 # def load_raw_data_cora():
@@ -96,15 +261,9 @@ def load_raw_data(dataset_str):
     return adj, features, labels, idx_train, idx_val, idx_test
 
 
-
-# def load_raw_data(dataset):
-#     if dataset == 'cora':
-#         return load_raw_data_cora()
-#     else:
-#         raise ValueError(f"Dataset {dataset} not supported.")
-
 def create_graphsage_data(dataset):
-    adj, features, labels, idx_train, idx_val, idx_test = load_raw_data(dataset)
+    # adj, features, labels, idx_train, idx_val, idx_test = load_raw_data(dataset)
+    adj, features, labels, idx_train, idx_val, idx_test = load_twomoons()
     grapf_dict = {
         "directed": False,
         "graph": [],
@@ -147,4 +306,4 @@ def create_graphsage_data(dataset):
 
 
 
-create_graphsage_data('pubmed')
+create_graphsage_data('twomoons')

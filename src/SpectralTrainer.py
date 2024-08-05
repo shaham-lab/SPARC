@@ -7,7 +7,9 @@ from torch import sigmoid
 from torch.nn import functional as F
 import torch.optim as optim
 from torch.optim.lr_scheduler import _LRScheduler
-
+import umap
+import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 import utils
 # from src.data import divide_graph_to_batches
 from utils import *
@@ -61,7 +63,7 @@ class SpectralNetModel(nn.Module):
         """
 
         m = Y.shape[0]
-
+        
         _, R = torch.linalg.qr(Y)
 
         orthonorm_weights = np.sqrt(m) * torch.inverse(R)
@@ -110,7 +112,7 @@ class SpectralNetLoss(nn.Module):
     def __init__(self):
         super(SpectralNetLoss, self).__init__()
 
-    def forward(self, W: torch.Tensor, Y: torch.Tensor, is_normalized: bool = False) -> torch.Tensor:
+    def forward(self, W: torch.Tensor, Y: torch.Tensor, is_normalized: bool = True) -> torch.Tensor:
         """
         This function computes the loss of the SpectralNet model.
         The loss is the rayleigh quotient of the Laplacian matrix obtained from W, 
@@ -257,20 +259,22 @@ class SpectralTrainer:
         for epoch in range(self.epochs):
             train_loss = 0.0
 
-            # if epoch != 0:
-            #     Y = self.spectral_net(self.X, should_update_orth_weights=False).detach().cpu().numpy() / self.X.shape[0]
-            #
-            #     g = get_grassman_distance(U, Y)
-            #     g_sys = get_grassman_distance(U_sys, Y)
-            #     g_rw = get_grassman_distance(U_rw, Y)
-            #
-            #     print('========')
-            #     print('epoch: ', epoch)
-            #     print('grassman: ', g)
-            #     print('grassman_sys: ', g_sys)
-            #     print('grassman_rw: ', g_rw)
-            #     print('========')
-
+            # if epoch % 20 == 1:
+            #     reducer = umap.UMAP()
+            #     features = []
+            #     labels = []
+            #     for i in range(batches):
+            #         features.append(self.features_batches[i].detach().cpu().numpy())
+            #         labels.append(self.y_train_batches[i].detach().cpu().numpy())
+            #     features = np.concatenate(features, axis=0)
+            #     labels = np.concatenate(labels, axis=0)
+            #     labels = np.argmax(labels, axis=1)
+            #     Y = self.spectral_net(torch.FloatTensor(features).to(self.device), should_update_orth_weights=False)
+            #     embedding = reducer.fit_transform(Y.detach().cpu().numpy())
+            #     plt.scatter(embedding[:, 0], embedding[:, 1], c=labels)
+            #     plt.title('UMAP projection of the dataset', fontsize=24)
+            #     plt.show()
+            #     plt.savefig('umap.png')
 
             for pid in range(batches):
                 pid_2 = np.random.choice(batches)
@@ -293,8 +297,8 @@ class SpectralTrainer:
 
                 features_b_2 = self.features_batches[pid_2].to(self.device)
 
-                perm = np.random.permutation(len(features_b_2))
-                features_b_2 = features_b_2[perm]
+                perm_2 = np.random.permutation(len(features_b_2))
+                features_b_2 = features_b_2[perm_2]
 
 
 
@@ -309,8 +313,39 @@ class SpectralTrainer:
                 W = self._get_support_matrix(support_b)
                 W = W[perm][:, perm]
                 
-                W_ = W.detach().cpu().numpy()
-                W_[W_ > 0] = 1
+                
+                # W = W + 0.1 * (W @ W) + 0.01 * (W @ W @ W) + 0.001 * (W @ W @ W @ W) + 0.0001 * (W @ W @ W @ W @ W)
+                # W = W + W @ W + W @ W @ W + W @ W @ W @ W + W @ W @ W @ W @ W
+                
+                
+                # W_ = W.detach().cpu().numpy()
+                
+                # # # W_[W_ > 0] = 1
+                # W_ = np.log(W_ + 1)
+                # W_ = sort_laplacian(W_, y_train_b[perm])
+                # sorted_y = np.sort(y_train_b[perm])
+
+                # separation_indices = []
+                # for i in range(1, len(sorted_y)):
+                #     if sorted_y[i] != sorted_y[i - 1]:
+                #         separation_indices.append(i)
+
+                # plt.imshow(W_, cmap='hot', norm=colors.LogNorm())
+
+                # # Adding vertical and horizontal lines to separate classes
+                # for sep_idx in separation_indices:
+                #     plt.axvline(x=sep_idx + 0.5, color='blue', linestyle='--')
+                #     plt.axhline(y=sep_idx + 0.5, color='blue', linestyle='--')
+
+                # plt.colorbar()
+                # plt.title('Laplacian Matrix with Class Separation')
+                # plt.show()
+
+                # # Save the figure
+                # plt.savefig('block_diagonal_2b_.png')
+                # plt.clf()
+                
+                
                 # L = sort_laplacian(W_, y_train_b[perm])
                 # import matplotlib.pyplot as plt
                 # plt.imshow(L, cmap='hot', norm=colors.LogNorm())
@@ -327,67 +362,90 @@ class SpectralTrainer:
                     with torch.no_grad():
                         features_b = self.siamese_net.forward_once(features_b)
                 
-                W_2 = self._get_affinity_matrix(features_b)
-                # W_2 = utils.get_affinity_matrix(features_b)
+                
+                # W_ = W + W @ W + W @ W @ W + W @ W @ W @ W + W @ W @ W @ W @ W + W @ W @ W @ W @ W @ W + W @ W @ W @ W @ W @ W @ W + W @ W @ W @ W @ W @ W @ W @ W + W @ W @ W @ W @ W @ W @ W @ W @ W + W @ W @ W @ W @ W @ W @ W @ W @ W @ W
+                # zeros in diag
+                # W_ = W_ - torch.diag(torch.diag(W_))
+                
+                # W_ = F.normalize(W, p=2, dim=1) + F.normalize(W @ W, p=2, dim=1) + F.normalize(W @ W @ W, p=2, dim=1) + F.normalize(W @ W @ W @ W, p=2, dim=1) + F.normalize(W @ W @ W @ W @ W, p=2, dim=1)
+                W_ = symmetric_normalize(W) + symmetric_normalize(W @ W) + symmetric_normalize(W @ W @ W) + symmetric_normalize(W @ W @ W @ W) + symmetric_normalize(W @ W @ W @ W @ W)
+                W_ = F.normalize(W_, p=2, dim=1)
+                W_2 = self._get_affinity_matrix(W_ @ features_b)
+                W_2 = F.normalize(W_2, p=2, dim=1)
+                
+                
+                # W_2 = self._get_affinity_matrix(features_b)
+                W += W_2
+                
+                # W_input = W @ features_b
+                # W_input = W_input.detach().cpu().numpy()
+                
+                # plt.scatter(W_input[:, 0], W_input[:, 1], c=y_train_b[perm])
+                # plt.show()
+                # plt.savefig('input_space.png')
+                # plt.clf()
+                
                 
                 # W_2_ = W_2.detach().cpu().numpy()
-                # # W_2_ = np.log(W_2_ + 1)
+                # W_2_ = np.log(W_2_ + 1)
                 # # W_2_[W_2_ > 0] = 1
                 # W_2_ = sort_laplacian(W_2_, y_train_b[perm])
                 # plt.imshow(W_2_, cmap='hot', norm=colors.LogNorm())
+                # separation_indices = []
+                # sorted_y = np.sort(y_train_b[perm])
+                # for i in range(1, len(sorted_y)):
+                #     if sorted_y[i] != sorted_y[i - 1]:
+                #         separation_indices.append(i)
+                
+                # for sep_idx in separation_indices:
+                #     plt.axvline(x=sep_idx + 0.5, color='blue', linestyle='--')
+                #     plt.axhline(y=sep_idx + 0.5, color='blue', linestyle='--')
                 # plt.show()
-                # plt.savefig('block_diagonal_2.png')
+                # plt.savefig('block_diagonal_2_b_affinity.png')
+                # plt.clf()
+                
                 
                 # W = 0.1* W + 0.9 *  W_2
                 # W = 0.9 * W + 0.1 * W_2
                 # W = 0.1* (W @ W) + 0.9 *  (W_2)
                 
-                W[W > 0] = 1
                 # W = F.normalize(W, p=2, dim=1)
-                # W_2[W_2 > 0] = 1
+                # W_2 = F.normalize(W_2, p=2, dim=1)
                 
                 
                 
-                W = W + W_2
+                # W = W_2
                 
+                # W_ = W.detach().cpu().numpy()
+                # W_ = np.log(W_ + 1)
+                # W_ = sort_laplacian(W_, y_train_b[perm])
+                # plt.imshow(W_, cmap='hot', norm=colors.LogNorm())
                 
-                # normalize
-                # W = F.normalize(W, p=2, dim=1)
-                
-
-
-                # # W = self.get_adjacency_matrix(indices_grad)
-                # # W = W.to(device=self.device)
-                
-                # A = W.detach().cpu().numpy() 
-                # A = A + np.ones((A.shape[0], A.shape[0])) * 1e-5
-
-                # D = np.array(A.sum(1))
-                # D = np.diag(D.flatten())
-                # D_inv = np.linalg.inv(D)
-                # D_inv_sqrt = np.sqrt(D_inv)
-                # L = np.eye(A.shape[0]) - np.matmul(np.matmul(D_inv_sqrt, A), D_inv_sqrt)
-                # try:
-                #     vecs, vals, _ = np.linalg.svd(L)
-                #     vecs = vecs[:, np.argsort(vals)]
-                #     U = vecs[:, :27]
+                # separation_indices = []
+                # sorted_y = np.sort(y_train_b[perm])
+                # for i in range(1, len(sorted_y)):
+                #     if sorted_y[i] != sorted_y[i - 1]:
+                #         separation_indices.append(i)
+                # # Adding vertical and horizontal lines to separate classes
+                # for sep_idx in separation_indices:
+                #     plt.axvline(x=sep_idx + 0.5, color='blue', linestyle='--')
+                #     plt.axhline(y=sep_idx + 0.5, color='blue', linestyle='--')
                     
-                #     grassmans.append(get_grassman_distance(U, Y.detach().cpu().numpy() / Y.shape[0]))
-                # except:
-                #     grassmans.append(grassmans[-1])
+                # plt.colorbar()
+                # plt.title('Laplacian Matrix with Class Separation')
+                # plt.show()
+                # plt.savefig('block_diagonal_X.png')
+                # plt.clf()
+                
+                
 
-                loss = self.criterion(W, Y, is_normalized=True)
+
+                loss = self.criterion(W, Y, is_normalized=False)
 
                 loss.backward()
                 self.optimizer.step()
                 train_loss += loss.item()
 
-            #     for name, param in self.spectral_net.named_parameters():
-            #         param.grad /= torch.norm(param.grad)
-            #
-            # for name, param in self.spectral_net.named_parameters():
-            #     if param.grad is not None:
-            #         print(name, param.grad.norm().item())
 
             # Validation step
             valid_loss = 0.0
@@ -407,8 +465,8 @@ class SpectralTrainer:
                         with torch.no_grad():
                             features_b = self.siamese_net.forward_once(features_b)
                     
-                    W_2 = self._get_affinity_matrix(features_b)
-                    W = W + W_2
+                    W_2 = self._get_affinity_matrix(W @ features_b)
+                    W = W_2
 
                     
 
@@ -421,75 +479,6 @@ class SpectralTrainer:
             if current_lr <= self.spectral_config["min_lr"]: break
             print(f"Epoch: {epoch +1}/{self.epochs}, Train Loss: {train_loss / batches:.7f}, Valid Loss: {valid_loss / batches_val:.7f}, LR: {current_lr:.6f}" )
 
-
-            # self.spectral_net.train()
-            # for (X_grad, y_grad, indices_grad), (X_orth, _, _) in zip(train_loader, ortho_loader):
-            #     indices_grad = indices_grad[:800]
-            #
-            #     while indices_grad.shape[0] < self.batch_size:
-            #         neighbors = self._get_neighbors(indices_grad)
-            #         unique_neighbors = neighbors[~torch.isin(neighbors, indices_grad)]
-            #         # remove neighbors in validation set
-            #         unique_neighbors = unique_neighbors[~torch.isin(unique_neighbors, valid_indices)]
-            #
-            #         if unique_neighbors.shape[0] == 0:
-            #             # print("No more neighbors to add")
-            #             break
-            #         indices_grad = torch.cat((indices_grad, unique_neighbors[:self.batch_size - indices_grad.shape[0]]))
-            #
-            #     indexes = torch.where(self.indices.unsqueeze(0) == indices_grad.unsqueeze(1))[1]
-            #     indices_grad = torch.where(self.indices.unsqueeze(0) == indices_grad.unsqueeze(1))[1]
-            #     X_grad = self.X[indexes]
-            #     y_grad = self.y[indexes]
-            #
-            #
-            #
-            #     X_grad = X_grad.to(device=self.device)
-            #     X_grad = X_grad.view(X_grad.size(0), -1)
-            #     X_orth = X_orth.to(device=self.device)
-            #     X_orth = X_orth.view(X_orth.size(0), -1)
-            #
-            #     # Orthogonality step
-            #     self.spectral_net.eval()
-            #     self.spectral_net(X_orth, should_update_orth_weights=True)
-            #
-            #
-            #     # Gradient step
-            #     self.spectral_net.train()
-            #     self.optimizer.zero_grad()
-            #
-            #     Y = self.spectral_net(X_grad, should_update_orth_weights=False)
-            #
-            #     W = self.get_adjacency_matrix(indices_grad)
-            #     W = W.to(device=self.device)
-            #
-            #     loss = self.criterion(W, Y, is_normalized=True)
-            #
-            #     loss.backward()
-            #     self.optimizer.step()
-            #     train_loss += loss.item()
-            #
-            #
-            # # Validation step
-            # valid_loss = self.validate(valid_loader)
-            # self.scheduler.step(valid_loss)
-            #
-            # current_lr = self.optimizer.param_groups[0]["lr"]
-            # if current_lr <= self.spectral_config["min_lr"]: break
-            # print("Epoch: {}/{}, Train Loss: {:.7f}, Valid Loss: {:.7f}, LR: {:.6f}".
-            #       format(epoch + 1, self.epochs, train_loss, valid_loss, current_lr))
-
-            # adj_matrix = self.get_adjacency_matrix(indices_grad)
-            # adj_matrix = adj_matrix.detach().cpu().numpy()
-            # D = np.diag(np.sum(adj_matrix, axis=1))
-            # L = D - adj_matrix
-            # V, U = np.linalg.eig(L)
-            # U = U[:, :1024]
-            # Y = self.spectral_net(self.X, should_update_orth_weights=False).detach().cpu().numpy() / self.X.shape[0]
-            # print('========')
-            # print('epoch: ', epoch)
-            # print('grassman: ', get_grassman_distance(U, Y))
-            # print('========')
 
 
             if valid_loss <= min_val_loss:
@@ -545,6 +534,8 @@ class SpectralTrainer:
         values = torch.FloatTensor(support[1])
         size = support[2]
         W = torch.sparse.FloatTensor(indices.t(), values, size).to_dense() # + torch.ones(size) * 1e-5
+        # W[W > 0] = 1
+        # W = W - torch.diag(torch.diag(W)) + torch.eye(W.shape[0]) * 0.001
         # W = W + W.T
         # W = W @ W
         # normalize
