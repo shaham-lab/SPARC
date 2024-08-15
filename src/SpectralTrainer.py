@@ -367,15 +367,20 @@ class SpectralTrainer:
                 # zeros in diag
                 # W_ = W_ - torch.diag(torch.diag(W_))
                 
-                # W_ = F.normalize(W, p=2, dim=1) + F.normalize(W @ W, p=2, dim=1) + F.normalize(W @ W @ W, p=2, dim=1) + F.normalize(W @ W @ W @ W, p=2, dim=1) + F.normalize(W @ W @ W @ W @ W, p=2, dim=1)
-                W_ = symmetric_normalize(W) + symmetric_normalize(W @ W) + symmetric_normalize(W @ W @ W) + symmetric_normalize(W @ W @ W @ W) + symmetric_normalize(W @ W @ W @ W @ W)
+                
+                
+                W_ = F.normalize(W, p=2, dim=1) + F.normalize(W @ W, p=2, dim=1) + F.normalize(W @ W @ W, p=2, dim=1) + F.normalize(W @ W @ W @ W, p=2, dim=1) + F.normalize(W @ W @ W @ W @ W, p=2, dim=1) + F.normalize(W @ W @ W @ W @ W @ W, p=2, dim=1) + F.normalize(W @ W @ W @ W @ W @ W @ W, p=2, dim=1) + F.normalize(W @ W @ W @ W @ W @ W @ W @ W, p=2, dim=1) + F.normalize(W @ W @ W @ W @ W @ W @ W @ W @ W, p=2, dim=1) + F.normalize(W @ W @ W @ W @ W @ W @ W @ W @ W @ W, p=2, dim=1)
+                # W_ = symmetric_normalize(W) + symmetric_normalize(W @ W) + symmetric_normalize(W @ W @ W) + symmetric_normalize(W @ W @ W @ W) + symmetric_normalize(W @ W @ W @ W @ W)
                 W_ = F.normalize(W_, p=2, dim=1)
-                W_2 = self._get_affinity_matrix(W_ @ features_b)
+                W_2 = self._get_affinity_matrix(features_b)
                 W_2 = F.normalize(W_2, p=2, dim=1)
+                W = W_ + W_2
+                W = W + W.T / 2
+                # W = W - torch.diag(torch.diag(W))
                 
                 
                 # W_2 = self._get_affinity_matrix(features_b)
-                W += W_2
+                # W += W_2
                 
                 # W_input = W @ features_b
                 # W_input = W_input.detach().cpu().numpy()
@@ -465,8 +470,8 @@ class SpectralTrainer:
                         with torch.no_grad():
                             features_b = self.siamese_net.forward_once(features_b)
                     
-                    W_2 = self._get_affinity_matrix(W @ features_b)
-                    W = W_2
+                    # W_2 = self._get_affinity_matrix(W @ features_b)
+                    # W = W_2
 
                     
 

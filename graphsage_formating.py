@@ -11,6 +11,7 @@ from scipy.sparse import coo_matrix, csr_matrix
 from sklearn.datasets import make_moons
 import matplotlib.pyplot as plt
 from sklearn.neighbors import NearestNeighbors
+import os
 
 
 def get_nearest_neighbors(X: torch.Tensor, Y: torch.Tensor = None, k: int = 3) -> tuple[np.ndarray, np.ndarray]:
@@ -167,8 +168,8 @@ def load_twomoons():
     y = torch.LongTensor(y)
     
     
-    train_size = 0.85 * n
-    val_size = 0.05 * n
+    train_size = 0.90 * n
+    val_size = 0.07 * n
     idx = np.random.permutation(n)
     idx_train = idx[:int(train_size)]
     idx_val = idx[int(train_size):int(train_size + val_size)]
@@ -250,9 +251,9 @@ def load_raw_data(dataset_str):
     labels = torch.LongTensor(labels)
     
     idx = np.random.permutation(labels.shape[0])
-    idx_train = idx[:int(0.85 * len(labels))]
-    idx_val = idx[int(0.85 * len(labels)):int(0.9 * len(labels))]
-    idx_test = idx[int(0.9 * len(labels)):]
+    idx_train = idx[:int(0.9 * len(labels))]
+    idx_val = idx[int(0.9 * len(labels)):int(0.97 * len(labels))]
+    idx_test = idx[int(0.97 * len(labels)):]
     print("Number of training nodes: ", len(idx_train))
     print("Number of validation nodes: ", len(idx_val))
     print("Number of testing nodes: ", len(idx_test))
@@ -261,49 +262,85 @@ def load_raw_data(dataset_str):
     return adj, features, labels, idx_train, idx_val, idx_test
 
 
+
 def create_graphsage_data(dataset):
-    # adj, features, labels, idx_train, idx_val, idx_test = load_raw_data(dataset)
-    adj, features, labels, idx_train, idx_val, idx_test = load_twomoons()
-    grapf_dict = {
+    # Load data
+    adj, features, labels, idx_train, idx_val, idx_test = load_raw_data(dataset)
+    
+    # Prepare the graph dictionary
+    graph_dict = {
         "directed": False,
         "graph": [],
-        "nodes": [],
+        "nodes": [{"id": str(node), "test": node in idx_test, "val": node in idx_val} for node in range(adj.shape[0])],
         "links": []
     }
-    for node in range(adj.shape[0]):
-        grapf_dict["nodes"].append({
-            "id": str(node),
-            "test": node in idx_test,
-            "val": node in idx_val
-        })
+    
+    # Create links from adjacency matrix (more efficient using non-zero indices)
+    non_zero_indices = np.nonzero(adj)
+    for i, j in zip(non_zero_indices[0], non_zero_indices[1]):
+        graph_dict["links"].append({"source": int(i), "target": int(j)})
+    
+    # Save graph, features, id_map, and class_map
+    save_path = f'./data/{dataset}/'
+    os.makedirs(save_path, exist_ok=True)
+    
+    with open(f'{save_path}{dataset}-G.json', 'w') as f:
+        json.dump(graph_dict, f)
+    
+    np.save(f'{save_path}{dataset}-feats.npy', features)
+    
+    id_map = {j: i for i, j in enumerate(range(adj.shape[0]))}
+    with open(f'{save_path}{dataset}-id_map.json', 'w') as f:
+        json.dump(id_map, f)
+    
+    class_map = {i: int(j) for i, j in enumerate(labels)}
+    with open(f'{save_path}{dataset}-class_map.json', 'w') as f:
+        json.dump(class_map, f)
 
-    for i in range(adj.shape[0]):
-        for j in range(adj.shape[1]):
-            if adj[i, j] > 0:
-                grapf_dict["links"].append({
-                    "source": i,
-                    "target": j
-                })
+
+# def create_graphsage_data(dataset):
+#     adj, features, labels, idx_train, idx_val, idx_test = load_raw_data(dataset)
+#     # adj, features, labels, idx_train, idx_val, idx_test = load_twomoons()
+#     grapf_dict = {
+#         "directed": False,
+#         "graph": [],
+#         "nodes": [],
+#         "links": []
+#     }
+#     for node in range(adj.shape[0]):
+#         grapf_dict["nodes"].append({
+#             "id": str(node),
+#             "test": node in idx_test,
+#             "val": node in idx_val
+#         })
+
+#     for i in range(adj.shape[0]):
+#         for j in range(adj.shape[1]):
+#             if adj[i, j] > 0:
+#                 grapf_dict["links"].append({
+#                     "source": i,
+#                     "target": j
+#                 })
                 
 
-    with open(f'./data/{dataset}/{dataset}-G.json', 'w') as f:
-        json.dump(grapf_dict, f)
-        f.close()
+#     with open(f'./data/{dataset}/{dataset}-G.json', 'w') as f:
+#         json.dump(grapf_dict, f)
+#         f.close()
 
-    with open(f'./data/{dataset}/{dataset}-feats.npy', 'wb') as f:
-        np.save(f, features)
-        f.close()
+#     with open(f'./data/{dataset}/{dataset}-feats.npy', 'wb') as f:
+#         np.save(f, features)
+#         f.close()
 
-    id_map = {j: i for i, j in enumerate(range(adj.shape[0]))}
-    with open(f'./data/{dataset}/{dataset}-id_map.json', 'w') as f:
-        json.dump(id_map, f)
-        f.close()
+#     id_map = {j: i for i, j in enumerate(range(adj.shape[0]))}
+#     with open(f'./data/{dataset}/{dataset}-id_map.json', 'w') as f:
+#         json.dump(id_map, f)
+#         f.close()
 
-    class_map = {i: int(j) for i, j in enumerate(labels)}
-    with open(f'./data/{dataset}/{dataset}-class_map.json', 'w') as f:
-        json.dump(class_map, f)
-        f.close()
+#     class_map = {i: int(j) for i, j in enumerate(labels)}
+#     with open(f'./data/{dataset}/{dataset}-class_map.json', 'w') as f:
+#         json.dump(class_map, f)
+#         f.close()
 
 
 
-create_graphsage_data('twomoons')
+create_graphsage_data('pubmed')

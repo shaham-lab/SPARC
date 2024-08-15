@@ -43,7 +43,7 @@
             "n_layers": 4,
             "hidden_dim1": 1024,
             "hidden_dim2": 512,
-            "output_dim": 128
+            "output_dim": 32
         },
         "epochs": 300,
         "lr": 1e-3,
@@ -55,8 +55,8 @@
         "is_local_scale": false,
         "n_clusters": 7,
         "patience": 10,
-        "bsize": 10,
-        "num_clusters": 1,
+        "bsize": 20,
+        "num_clusters": 100,
         "num_clusters_val": 1,
         "num_clusters_test": 1,
         "diag_lambda": -1,

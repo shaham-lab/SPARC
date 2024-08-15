@@ -426,11 +426,11 @@ def main():
     
     # np.save(f'./results/{dataset}/{output_dim}/{SEED}/spectralnet.npy', Y)
     
-    kmeans = KMeans(n_clusters=75, random_state=SEED)
+    kmeans = KMeans(n_clusters=70, random_state=SEED)
     kmeans.fit(Y)
     cluster_labels = kmeans.labels_
     outliares = 0
-    for i in range(75):
+    for i in range(70):
         cluster = y_train[cluster_labels == i]
         print(np.bincount(cluster))
         outliares += np.sum(np.bincount(cluster)) - np.max(np.bincount(cluster))
@@ -440,30 +440,37 @@ def main():
     kmeans.fit(Y)
     cluster_labels = kmeans.labels_
     
-    metrics = Metrics()
     
-    nmi = metrics.nmi_score(cluster_labels[train_mask], y_train[train_mask])
-    acc = metrics.acc_score(cluster_labels[train_mask], y_train[train_mask], n_clusters)
-    print(f'NMI: {nmi}, ACC: {acc}')
+    cm = clustering_metrics(cluster_labels[train_mask], y_train[train_mask])
+    acc, nmi, adjscore, f1_macro, precision_macro, f1_micro, precision_micro = cm.evaluationClusterModelFromLabel()
+    
+    print('#################')
+    
+    cm = clustering_metrics(cluster_labels[test_mask], y_test[test_mask])
+    acc, nmi, adjscore, f1_macro, precision_macro, f1_micro, precision_micro = cm.evaluationClusterModelFromLabel()
+    
+   
+    # acc = metrics.acc_score(cluster_labels[train_mask], y_train[train_mask], n_clusters)
+    # nmi = metrics.nmi_score(cluster_labels[train_mask], y_train[train_mask])
+    # f1 = f1_score_optimal_permutation(y_train[train_mask], cluster_labels[train_mask], average='macro')
+    # print(f'Train NMI: {nmi}, Train ACC: {acc}, Train F1: {f1}')
+    
+
     
     
-    # plt.scatter(X[:, 0], X[:, 1], c=cluster_labels)
-    # plt.savefig('cluster.png')
+    # # plt.scatter(X[:, 0], X[:, 1], c=cluster_labels)
+    # # plt.savefig('cluster.png')
     
     # print('##################')
-    #
+    
     # nmi = metrics.nmi_score(cluster_labels[test_mask], y_test[test_mask])
     # acc = metrics.acc_score(cluster_labels[test_mask], y_test[test_mask], n_clusters)
-    # print(f'Test NMI: {nmi}, Test ACC: {acc}')
-    
-    # print('##################')
-    # nmi = metrics.nmi_score(y_test, y_test)
-    # acc = metrics.acc_score(y_test, y_test, n_clusters)
-    # print(f'Perfect NMI: {nmi}, Perfect ACC: {acc}')
+    # f1 = f1_score_optimal_permutation(y_test[test_mask], cluster_labels[test_mask], average='macro')
+    # print(f'Test NMI: {nmi}, Test ACC: {acc}, Test F1: {f1}')
     
     
     
-    
+
     
 if __name__ == "__main__":
     # print('Starting...')
