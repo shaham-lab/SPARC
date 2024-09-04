@@ -149,8 +149,46 @@ def main():
     unique, counts = np.unique(y_test, return_counts=True)
     print('Test:', unique, counts)
     
+    
+    # kmeans = KMeans(n_clusters=n_clusters, random_state=SEED)
+    # kmeans.fit(test_feats[train_mask])
+    # train_cluster_labels = kmeans.labels_
+    # test_cluster_labels = kmeans.predict(test_feats[test_mask])
+    
+    # metrics = Metrics()
+    
+    # nmi = metrics.nmi_score(train_cluster_labels, y_train[train_mask])
+    # acc = metrics.acc_score(train_cluster_labels, y_train[train_mask], n_clusters)
+    # print(f'Train NMI: {nmi}, Train ACC: {acc}')
+    
+    # nmi = metrics.nmi_score(test_cluster_labels, y_test[test_mask])
+    # acc = metrics.acc_score(test_cluster_labels, y_test[test_mask], n_clusters)
+    # print(f'Test NMI: {nmi}, Test ACC: {acc}')
 
-
+    # A = train_adj.todense()
+    # A = A + np.eye(A.shape[0])
+    # A = A + A.T
+    # A[A < 1] = 0
+    
+    # A = torch.tensor(A, dtype=torch.float32)
+    # D_inv_sqrt = torch.diag(torch.pow(torch.sum(A, dim=1), -0.5))
+    # L = torch.eye(A.shape[0]) - D_inv_sqrt @ A @ D_inv_sqrt
+    # V, U = torch.linalg.eig(L)
+    # V = V.real
+    # U = U.real
+    # idx = V.argsort()
+    # V = V[idx]
+    # U = U[:, idx]
+    # U = U[:, 1:output_dim+1]
+    
+    # kmeans = KMeans(n_clusters=n_clusters, random_state=SEED)
+    # kmeans.fit(U)
+    # cluster_labels = kmeans.labels_
+    
+    # cm = clustering_metrics(cluster_labels, y_train)
+    # acc, nmi, adjscore, f1_macro, precision_macro, f1_micro, precision_micro = cm.evaluationClusterModelFromLabel()
+    
+    # exit()
 
     # reducer = umap.UMAP()
     # embedding = reducer.fit_transform(train_feats)
@@ -426,28 +464,41 @@ def main():
     
     # np.save(f'./results/{dataset}/{output_dim}/{SEED}/spectralnet.npy', Y)
     
-    kmeans = KMeans(n_clusters=70, random_state=SEED)
-    kmeans.fit(Y)
-    cluster_labels = kmeans.labels_
-    outliares = 0
-    for i in range(70):
-        cluster = y_train[cluster_labels == i]
-        print(np.bincount(cluster))
-        outliares += np.sum(np.bincount(cluster)) - np.max(np.bincount(cluster))
-    print(outliares)
-    
-    kmeans = KMeans(n_clusters=n_clusters, random_state=SEED)
-    kmeans.fit(Y)
-    cluster_labels = kmeans.labels_
+    # for each node in the test set, find the closest node in the train set
+    dist = cdist(Y, Y)
+    idx = np.argsort(dist, axis=1)
+    acc = 0
+    for i in range(test_mask.shape[0]):
+        if test_mask[i] == 0:
+            continue
+        else:
+            if y_test[i] == y_train[idx[i, 0]]:
+                acc += 1
+    print('ACC:', acc / np.sum(test_mask))
     
     
-    cm = clustering_metrics(cluster_labels[train_mask], y_train[train_mask])
-    acc, nmi, adjscore, f1_macro, precision_macro, f1_micro, precision_micro = cm.evaluationClusterModelFromLabel()
+    # kmeans = KMeans(n_clusters=70, random_state=SEED)
+    # kmeans.fit(Y)
+    # cluster_labels = kmeans.labels_
+    # outliares = 0
+    # for i in range(70):
+    #     cluster = y_train[cluster_labels == i]
+    #     print(np.bincount(cluster))
+    #     outliares += np.sum(np.bincount(cluster)) - np.max(np.bincount(cluster))
+    # print(outliares)
     
-    print('#################')
+    # kmeans = KMeans(n_clusters=n_clusters, random_state=SEED)
+    # kmeans.fit(Y)
+    # cluster_labels = kmeans.labels_
     
-    cm = clustering_metrics(cluster_labels[test_mask], y_test[test_mask])
-    acc, nmi, adjscore, f1_macro, precision_macro, f1_micro, precision_micro = cm.evaluationClusterModelFromLabel()
+    
+    # cm = clustering_metrics(cluster_labels[train_mask], y_train[train_mask])
+    # acc, nmi, adjscore, f1_macro, precision_macro, f1_micro, precision_micro = cm.evaluationClusterModelFromLabel()
+    
+    # print('#################')
+    
+    # cm = clustering_metrics(cluster_labels[test_mask], y_test[test_mask])
+    # acc, nmi, adjscore, f1_macro, precision_macro, f1_micro, precision_micro = cm.evaluationClusterModelFromLabel()
     
    
     # acc = metrics.acc_score(cluster_labels[train_mask], y_train[train_mask], n_clusters)

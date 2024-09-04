@@ -65,6 +65,8 @@ class SpectralNetModel(nn.Module):
         m = Y.shape[0]
         
         _, R = torch.linalg.qr(Y)
+        D = torch.diag(R.diag().sign())
+        R = D @ R
 
         orthonorm_weights = np.sqrt(m) * torch.inverse(R)
 
