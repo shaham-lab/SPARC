@@ -465,16 +465,16 @@ def main():
     # np.save(f'./results/{dataset}/{output_dim}/{SEED}/spectralnet.npy', Y)
     
     # for each node in the test set, find the closest node in the train set
-    dist = cdist(Y, Y)
-    idx = np.argsort(dist, axis=1)
-    acc = 0
-    for i in range(test_mask.shape[0]):
-        if test_mask[i] == 0:
-            continue
-        else:
-            if y_test[i] == y_train[idx[i, 0]]:
-                acc += 1
-    print('ACC:', acc / np.sum(test_mask))
+    # dist = cdist(Y, Y)
+    # idx = np.argsort(dist, axis=1)
+    # acc = 0
+    # for i in range(test_mask.shape[0]):
+    #     if test_mask[i] == 0:
+    #         continue
+    #     else:
+    #         if y_test[i] == y_train[idx[i, 0]]:
+    #             acc += 1
+    # print('ACC:', acc / np.sum(test_mask))
     
     
     # kmeans = KMeans(n_clusters=70, random_state=SEED)
@@ -487,13 +487,13 @@ def main():
     #     outliares += np.sum(np.bincount(cluster)) - np.max(np.bincount(cluster))
     # print(outliares)
     
-    # kmeans = KMeans(n_clusters=n_clusters, random_state=SEED)
-    # kmeans.fit(Y)
-    # cluster_labels = kmeans.labels_
+    kmeans = KMeans(n_clusters=n_clusters, random_state=SEED)
+    kmeans.fit(Y)
+    cluster_labels = kmeans.labels_
     
     
-    # cm = clustering_metrics(cluster_labels[train_mask], y_train[train_mask])
-    # acc, nmi, adjscore, f1_macro, precision_macro, f1_micro, precision_micro = cm.evaluationClusterModelFromLabel()
+    cm = clustering_metrics(cluster_labels[train_mask], y_train[train_mask])
+    acc, nmi, adjscore, f1_macro, precision_macro, f1_micro, precision_micro = cm.evaluationClusterModelFromLabel()
     
     # print('#################')
     

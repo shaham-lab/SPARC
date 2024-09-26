@@ -251,12 +251,12 @@ def load_graphsage_data(dataset_path, dataset_str, normalize=False):
             (edges.shape[0]), dtype=np.float32), (edges[:, 0], edges[:, 1])),
             shape=(num_data, num_data))
         adj += adj.transpose()
-        # adj += sp.eye(num_data)
-        # adj = adj + adj @ adj + adj @ adj @ adj
+        adj += sp.eye(num_data)
+        adj = adj + adj @ adj + adj @ adj @ adj 
         # set adj diagonal to 0
-        # adj.setdiag(0)
-        # D_sqrt = sp.diags(np.power(np.array(adj.sum(1)), -0.5).flatten())
-        # adj = D_sqrt @ adj @ D_sqrt
+        adj.setdiag(0)
+        D_sqrt = sp.diags(np.power(np.array(adj.sum(1)), -0.5).flatten())
+        adj = D_sqrt @ adj @ D_sqrt
         # adj += sp.eye(num_data)
         
         if feats is not None:

@@ -55,10 +55,11 @@
         "is_local_scale": true,
         "n_clusters": 6,
         "patience": 10,
-        "bsize": 50,
-        "num_clusters": 600,
+        "bsize": 5,
+        "num_clusters": 10,
         "num_clusters_val": 1,
         "num_clusters_test": 1,
-        "diag_lambda": -1
+        "diag_lambda": -1,
+        "_comment": "50, 600, 1, 1, 0.-1"
     }
 }
