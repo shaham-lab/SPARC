@@ -320,50 +320,51 @@ class SpectralTrainer:
                 # W = W + W @ W + W @ W @ W + W @ W @ W @ W + W @ W @ W @ W @ W
                 
                 
-                # W_ = W.detach().cpu().numpy()
+                W_ = W.detach().cpu().numpy()
                 
                 # W_ = self._get_affinity_matrix(features_b).detach().cpu().numpy()
                 
-                # # remove noise by setting large values to 0
-                # # W_[W_ < 0.01] = 0
-                # # W_[W_ > 0.1] = 0
+                # remove noise by setting large values to 0
+                # W_[W_ < 0.01] = 0
+                # W_[W_ > 0.1] = 0
                                 
                 
-                # # # W_ = W_ + W_ @ W_
-                # # W_ = W_ + np.eye(W_.shape[0]) 
-                # # # W_ = W_ + np.ones(W_.shape[0]) * 0.01
-                # # D_inv_sqrt = np.diag(1 / np.sqrt(np.sum(W_, axis=1)))
-                # # L = D_inv_sqrt @ W_ @ D_inv_sqrt
+                # W_ = W_ + W_ @ W_
+                # W_ = W_ + np.eye(W_.shape[0]) 
+                # W_ = W_ + np.ones(W_.shape[0]) * 0.01
+                # D_inv_sqrt = np.diag(1 / np.sqrt(np.sum(W_, axis=1)))
+                # L = D_inv_sqrt @ W_ @ D_inv_sqrt
+                # L = W_
                 
-                # # smooth the laplacian
-                # # L = L + np.ones(L.shape[0]) * 0.01
+                # smooth the laplacian
+                # L = L + np.ones(L.shape[0]) * 0.01
                 
-                # # # # W_[W_ > 0] = 1
-                # L = np.log(W_ + 1)
-                # L = sort_laplacian(L, y_train_b[perm])
-                # sorted_y = np.sort(y_train_b[perm])
+                # # # W_[W_ > 0] = 1
+                L = np.log(W_ + 1)
+                L = sort_laplacian(L, y_train_b[perm])
+                sorted_y = np.sort(y_train_b[perm])
 
-                # # separation_indices = []
-                # # for i in range(1, len(sorted_y)):
-                # #     if sorted_y[i] != sorted_y[i - 1]:
-                # #         separation_indices.append(i)
+                # separation_indices = []
+                # for i in range(1, len(sorted_y)):
+                #     if sorted_y[i] != sorted_y[i - 1]:
+                #         separation_indices.append(i)
 
-                # # plot in grayscale
-                # plt.imshow(L, cmap='gray', norm=colors.LogNorm())
+                # plot in grayscale
+                plt.imshow(L, cmap='hot', norm=colors.LogNorm())
 
-                # # # Adding vertical and horizontal lines to separate classes
-                # # for sep_idx in separation_indices:
-                # #     plt.axvline(x=sep_idx + 0.5, color='blue', linestyle='--')
-                # #     plt.axhline(y=sep_idx + 0.5, color='blue', linestyle='--')
+                # # Adding vertical and horizontal lines to separate classes
+                # for sep_idx in separation_indices:
+                #     plt.axvline(x=sep_idx + 0.5, color='blue', linestyle='--')
+                #     plt.axhline(y=sep_idx + 0.5, color='blue', linestyle='--')
 
-                # plt.colorbar()
-                # plt.title('Laplacian Matrix with Class Separation')
-                # plt.show()
+                plt.colorbar()
+                plt.title('Laplacian Matrix with Class Separation')
+                plt.show()
 
-                # # Save the figure
-                # plt.savefig('pubmed_L_f.png')
-                # plt.clf()
-                # exit()
+                # Save the figure
+                plt.savefig('citeseer_L_e.png')
+                plt.clf()
+                exit()
                 
                 # L = sort_laplacian(W_, y_train_b[perm])
                 # import matplotlib.pyplot as plt
