@@ -43,13 +43,13 @@
             "n_layers": 5,
             "hidden_dim1": 1024,
             "hidden_dim2": 1024,
-            "hidden_dim3": 1024,
-            "output_dim": 1024
+            "hidden_dim3": 512,
+            "output_dim": 32
         },
         "epochs": 150,
         "lr": 1e-3,
         "lr_decay": 0.1,
-        "min_lr": 1e-10,
+        "min_lr": 1e-7,
         "batch_size": 80000,
         "n_neighbors": 8,
         "scale_k": 2,

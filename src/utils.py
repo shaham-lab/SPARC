@@ -1,7 +1,6 @@
 import json
 import os
 import time
-
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,10 +8,7 @@ import matplotlib.colors as colors
 import scipy.sparse as sp
 import sklearn
 from networkx.readwrite import json_graph
-
-# from annoy import AnnoyIndex
 from sklearn.neighbors import NearestNeighbors
-
 import partition_utils
 
 
@@ -29,6 +25,7 @@ def normalize_adj(adj):
     d_mat_inv = sp.diags(d_inv, 0)
     adj = d_mat_inv.dot(adj)
     return adj
+
 
 def normalize_adj_diag_enhance(adj, diag_lambda):
     """Normalization by  A'=(D+I)^{-1}(A+I), A'=A'+lambda*diag(A')."""
@@ -49,6 +46,7 @@ def to_tuple(mx):
     shape = mx.shape
     return coords, values, shape
 
+
 def sparse_to_tuple(sparse_mx):
     if isinstance(sparse_mx, list):
         for i in range(len(sparse_mx)):
@@ -57,7 +55,6 @@ def sparse_to_tuple(sparse_mx):
         sparse_mx = to_tuple(sparse_mx)
 
     return sparse_mx
-
 
 
 def preprocess_multicluster(adj,
@@ -80,6 +77,7 @@ def preprocess_multicluster(adj,
         pt = parts[st]
         for pt_idx in range(st + 1, min(st + block_size, num_clusters)):
             pt = np.concatenate((pt, parts[pt_idx]), axis=0)
+            pt = pt.astype(np.int32)
         features_batches.append(torch.tensor(features[pt, :]).float())
         y_train_batches.append(torch.tensor(y_train[pt, :]).float())
         support_now = adj[pt, :][:, pt]
@@ -98,6 +96,7 @@ def preprocess_multicluster(adj,
         train_mask_batches.append(sample_mask(train_pt, len(pt)))
     return (features_batches, support_batches, y_train_batches,
           train_mask_batches)
+
 
 def preprocess(adj,
                features,
@@ -136,6 +135,7 @@ def preprocess(adj,
         train_mask_batches.append(sample_mask(train_pt, len(pt)))
     return (parts, features_batches, support_batches, y_train_batches,
           train_mask_batches)
+
 
 def load_graphsage_data(dataset_path, dataset_str, normalize=True):
     """Load GraphSAGE data."""
@@ -192,15 +192,14 @@ def load_graphsage_data(dataset_path, dataset_str, normalize=True):
         # [id_map_re[n] for n in graph_nx.nodes() if 'val' in graph_nx.nodes[n] and graph_nx.nodes[n]['val']],
         [id_map[n] for n in graph_nx.nodes() if 'val' in graph_nx.nodes[n] and graph_nx.nodes[n]['val']],
         dtype=np.int32)
-    # print('done val')
-    # print(len(val_data))
+
     test_data = np.array(
         # [id_map_re[n] for n in graph_nx.nodes() if 'test' in graph_nx.nodes[n] and graph_nx.nodes[n]['test']],
         [id_map[n] for n in graph_nx.nodes() if 'test' in graph_nx.nodes[n] and graph_nx.nodes[n]['test']],
         dtype=np.int32)
     
     is_train = np.ones((num_data), dtype=bool)
-    is_train[val_data] = False
+    # is_train[val_data] = False
     is_train[test_data] = False
     train_data = np.array([n for n in range(num_data) if is_train[n]],
                           dtype=np.int32)
@@ -210,9 +209,6 @@ def load_graphsage_data(dataset_path, dataset_str, normalize=True):
     ]
     edges = np.array(edges, dtype=np.int32)
     train_edges = np.array(train_edges, dtype=np.int32)
-
-    # print('edges', len(edges))
-    # print('train_edges', len(train_edges))
 
     # Process labels
     if isinstance(list(class_map.values())[0], list):
@@ -240,7 +236,6 @@ def load_graphsage_data(dataset_path, dataset_str, normalize=True):
         feats = scaler.transform(feats)
 
     def _construct_adj(edges):
-        # print(edges.shape)
         adj = sp.csr_matrix((np.ones(
             (edges.shape[0]), dtype=np.float32), (edges[:, 0], edges[:, 1])),
             shape=(num_data, num_data))
@@ -254,11 +249,11 @@ def load_graphsage_data(dataset_path, dataset_str, normalize=True):
     train_adj = _construct_adj(train_edges)
     full_adj = _construct_adj(edges)
     
-    train_feats = feats[train_data]
+    train_feats = feats
     test_feats = feats
 
-    # print('Loaded data in {:.2f} seconds'.format(time.time() - start_time))
     return num_data, train_adj, full_adj, feats, train_feats, test_feats, labels, train_data, val_data, test_data
+
 
 def get_number_of_clusters(X: torch.Tensor,  n_samples: int, threshold: float) -> int:
     """
@@ -502,23 +497,6 @@ def get_nearest_neighbors(X: torch.Tensor, Y: torch.Tensor = None, k: int = 3) -
     return Dis, Ids
 
 
-# def get_grassman_distance(A: np.ndarray, B: np.ndarray) -> float:
-#     """
-#     Computes the Grassmann distance between the subspaces spanned by the columns of A and B
-#
-#     Args:
-#         A:  Numpy ndarray
-#         B:  Numpy ndarray
-#     """
-#
-#     M = np.dot(np.transpose(A), B)
-#     _, s, _ = np.linalg.svd(M, full_matrices=False)
-#     s = 1 - np.square(s)
-#     grassmann = np.sum(s)
-#
-#     return grassmann
-
-
 def get_grassman_distance(A: np.ndarray, B: np.ndarray) -> float:
     """
     Computes the Grassmann distance between the subspaces spanned by the columns of A and B.
@@ -544,6 +522,7 @@ def get_grassman_distance(A: np.ndarray, B: np.ndarray) -> float:
     s = 1 - np.square(s)
     grassmann = np.sum(s)
     return grassmann
+
 
 def compute_scale(Dis: np.ndarray, k: int = 2, med: bool = True, is_local: bool = True) -> np.ndarray:
     """

@@ -27,18 +27,6 @@ from scipy.optimize import linear_sum_assignment
 import numpy as np
 
 
-def get_even_clusters(X, n_clusters):
-    cluster_size = int(np.ceil(len(X)/n_clusters))
-    kmeans = KMeans(n_clusters)
-    kmeans.fit(X)
-    # clusters = kmeans.predict(X)
-    centers = kmeans.cluster_centers_
-    centers = centers.reshape(-1, 1, X.shape[-1]).repeat(cluster_size, 1).reshape(-1, X.shape[-1])
-    distance_matrix = cdist(X, centers)
-    clusters = linear_sum_assignment(distance_matrix)[1]//cluster_size
-    return clusters
-
-
 def partition_graph(adj, idx_nodes, num_clusters):
     """partition a graph by METIS."""
 
@@ -65,9 +53,7 @@ def partition_graph(adj, idx_nodes, num_clusters):
         train_ord_map[idx_nodes[i]] = i
 
     if num_clusters > 1:
-        # groups = get_even_clusters(em, num_clusters)
-        _, groups = metis.part_graph(train_adj_lists, num_clusters, seed=1)
-        # random.shuffle(groups)
+        _, groups = metis.part_graph(train_adj_lists, num_clusters, seed=42)
     else:
         groups = [0] * num_nodes
 

@@ -89,6 +89,7 @@ class SiameseTrainer:
         """
 
         self.device = device
+        self.dataset = config["dataset"]
         self.siamese_config = config["siamese"]
         self.lr = self.siamese_config["lr"]
         self.epochs = self.siamese_config["epochs"]
@@ -96,7 +97,7 @@ class SiameseTrainer:
         self.patience = self.siamese_config["patience"]
         self.batch_size = self.siamese_config["batch_size"]
         self.architecture = self.siamese_config["architecture"]
-        self.weights_path = "./weights/siamese_weights.pth"
+        self.weights_path = f"./weights/{self.dataset}/siamese_weights_ae.pth"
     
     def train(self, X: torch.Tensor) -> SiameseNet:
         """

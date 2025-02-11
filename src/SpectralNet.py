@@ -21,6 +21,7 @@ class SpectralNet:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         print(f"Using {self.device} device")
 
+
     def fit(self, train, val):
         """ train, adj_dict, sparse_adj
         Performs the main training loop for the SpectralNet model.
@@ -30,33 +31,51 @@ class SpectralNet:
             y (torch.Tensor):   Labels in case there are any. Defaults to None.
             adj (torch.Tensor): Adjacency matrix of the graph. Defaults to None.
         """
-
+        
         should_use_ae = self.config["should_use_ae"]
         should_use_siamese = self.config["should_use_siamese"]
         create_weights_dir()
-
-        if should_use_ae:
-            parts, features_batches, support_batches, y_train_batches, train_mask_batches = train
-            idx_parts, val_features_batches, val_support_batches, y_val_batches, val_mask_batches = val
-            ae_trainer = AETrainer(self.config, self.device)
-            self.ae_net = ae_trainer.train(features_batches, val_features_batches)
-            features_batches, val_features_batches = ae_trainer.embed(features_batches, val_features_batches)
-            train = parts, features_batches, support_batches, y_train_batches, train_mask_batches
-            val = idx_parts, val_features_batches, val_support_batches, y_val_batches, val_mask_batches
+        parts, features_batches, support_batches, y_train_batches, train_mask_batches = train
+        idx_parts, val_features_batches, val_support_batches, y_val_batches, val_mask_batches = val
         
-        # if should_use_siamese:
-        #     siamese_trainer = SiameseTrainer(self.config, self.device)
-        #     self.siamese_net = siamese_trainer.train(torch.cat((x_train, x_valid), 0))
-        # else:
-        #     self.siamese_net = None
+        if should_use_ae:
+            ae_trainer = AETrainer(self.config, self.device)
+            self.ae_net = ae_trainer.train(features_batches, precalced_features_batches, val_features_batches)
+            features_batches, val_features_batches = ae_trainer.embed(features_batches, val_features_batches)
+            
+        train = parts, features_batches, support_batches, y_train_batches, train_mask_batches
+        val = idx_parts, val_features_batches, val_support_batches, y_val_batches, val_mask_batches
+        
+        if should_use_siamese:
+            train_mask = train_mask_batches[0]
+            x = features_batches[0][train_mask]
+            siamese_trainer = SiameseTrainer(self.config, self.device)
+            self.siamese_net = siamese_trainer.train(x)
+        else:
+            self.siamese_net = None
 
-        # is_sparse = self.config["is_sparse_graph"]
-        # if is_sparse:
-        #     build_ann(torch.cat((x_train, x_valid), 0))
-        is_sparse = False
-        spectral_trainer = SpectralTrainer(self.config, self.device, is_sparse=is_sparse)
+        spectral_trainer = SpectralTrainer(self.config, self.device, is_sparse=False, siamese_net=self.siamese_net)
         self.spec_net = spectral_trainer.train(train, val)
         
+    
+    def embed(self, X: torch.Tensor) -> np.ndarray:
+        """
+        Returns the features of the given data.
+
+        Args:
+            X (torch.Tensor):   Data to get the features of
+
+        Returns:
+            np.ndarray:  The features of the given data
+        """
+        X = X.to(self.device)
+        should_use_ae = self.config["should_use_ae"]
+        
+        if should_use_ae:
+            X_ae = self.ae_net.embed_single(X)
+            X = X_ae
+        return np.array(X.detach().cpu()) 
+    
     
     def predict(self, X: torch.Tensor) -> np.ndarray:
         """
@@ -69,17 +88,13 @@ class SpectralNet:
             np.ndarray:  The cluster assignments for the given data
 
         """      
-        # X = X.view(X.size(0), -1)
         X = X.to(self.device)
         should_use_ae = self.config["should_use_ae"]
         if should_use_ae:
             X = self.ae_net.encoder(X)
         X = X.to(self.device)
         self.embeddings_ = self.spec_net(X, should_update_orth_weights = False).detach().cpu().numpy()
-        self.embeddings_ = self.embeddings_ @ self.spec_net.rotation_matrix
         
-        # cluster_assignments = self._get_clusters_by_kmeans(self.embeddings_)
-        # return cluster_assignments
         return self.embeddings_
 
     

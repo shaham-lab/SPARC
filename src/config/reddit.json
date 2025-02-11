@@ -2,7 +2,7 @@
     "dataset": "reddit",
     "n_clusters": 41,
     "is_sparse_graph": false,
-    "should_use_ae": false,
+    "should_use_ae": true,
     "should_use_siamese": false,
     "should_check_generalization": true,
     "ae": {
@@ -10,15 +10,15 @@
             "hidden_dim1": 512,
             "hidden_dim2": 512,
             "hidden_dim3": 2048,
-            "output_dim": 10
+            "output_dim": 256
         },
-        "epochs": 3,
+        "epochs": 1000,
         "n_samples": 70000,
         "lr": 1e-3,
         "lr_decay": 0.1,
         "min_lr": 1e-7,
         "patience": 5,
-        "batch_size": 256
+        "batch_size": 1024
     },
     "siamese": {
         "architecture": {
@@ -41,26 +41,25 @@
     "spectral": {
         "architecture": {
             "n_layers": 6,
-            "hidden_dim1": 512,
+            "hidden_dim1": 1024,
             "hidden_dim2": 1024,
             "hidden_dim3": 512,
-            "hidden_dim4": 1024,
             "output_dim": 64
         },
-        "epochs": 150,
+        "epochs": 300,
         "lr": 1e-3,
-        "lr_decay": 0.05,
-        "min_lr": 1e-10,
+        "lr_decay": 0.1,
+        "min_lr": 1e-7,
         "batch_size": 10000,
         "n_neighbors": 8,
-        "scale_k": 2,
-        "is_local_scale": false,
+        "scale_k": 5,
+        "is_local_scale": true,
         "n_clusters": 7,
-        "patience": 50,
+        "patience": 10,
         "bsize": 50,
         "num_clusters": 1500,
         "num_clusters_val": 20,
         "num_clusters_test": 1,
-        "diag_lambda": 0.001
+        "diag_lambda": -1
     }
 }

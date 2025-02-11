@@ -33,6 +33,15 @@ class AE(nn.Module):
         x = self.decoder(x)
         return x
 
+    def embed_single(self, X: torch.Tensor) -> torch.Tensor:
+        """
+        This function embeds a single data point using the trained autoencoder.
+        Args:
+            X (torch.Tensor):  the data point to embed
+        Returns:
+            torch.Tensor: the embedded data point
+        """
+        return self.encoder(X)
 
 class AETrainer:
     def __init__(self, config: dict, device: torch.device):
@@ -43,6 +52,7 @@ class AETrainer:
             device (torch.device):  the device to train on
         """
         self.device = device
+        self.dataset = config["dataset"]
         self.ae_config = config["ae"]
         self.lr = self.ae_config["lr"]
         self.epochs = self.ae_config["epochs"]
@@ -51,7 +61,8 @@ class AETrainer:
         self.n_samples = self.ae_config["n_samples"]
         self.batch_size = self.ae_config["batch_size"]
         self.architecture = self.ae_config["architecture"]
-        self.weights_path = "./weights/ae_weights.pth"
+        self.output_dim = self.architecture["output_dim"]
+        self.weights_path = f"./weights/{self.dataset}/ae_weights_{self.output_dim}.pth"
     
     def train(self, features_batches, val_features_batches) -> AE:
         """
@@ -78,8 +89,6 @@ class AETrainer:
             self.ae_net.load_state_dict(torch.load(self.weights_path))
             return self.ae_net
         
-        # train_loader, valid_loader = self._get_data_loader()
-
         batches = len(self.features_batches)
         batches_val = len(self.val_features_batches)
         print("Training Autoencoder:")
@@ -160,6 +169,21 @@ class AETrainer:
                 batch_x = batch_x.view(batch_x.size(0), -1)
                 encoded_val_features_batches.append(self.ae_net.encoder(batch_x))
         return encoded_features_batches, encoded_val_features_batches
+
+
+    def embed_single(self, X: torch.Tensor) -> torch.Tensor:
+        """
+        This function embeds a single data point using the trained autoencoder.
+        Args:
+            X (torch.Tensor):  the data point to embed
+        Returns:
+            torch.Tensor: the embedded data point
+        """
+        self.ae_net.eval()
+        with torch.no_grad():
+            X = X.to(self.device)
+            return self.ae_net.encoder(X)
+
 
     def _get_data_loader(self) -> tuple:
         """
