@@ -1,15 +1,35 @@
-# GraphSpectralNet
+# SPARC: Spectral Architectures Tackling the Cold-Start Problem in Graph Learning
 
-This PyTorch implementation a framework of Graph datasets embedding that leverages low-dimensional embeddings of graph Laplacians to address scalability and generalization challenges, enabling efficient operations on large datasets and new nodes, effective mini-batching for SGD-based training.
-This framework is implementated in "SpecNetGCN: Scalable and Generalizable Spectral Graph Convolutional Network"
+## Overview
+
+SPARC is a novel graph learning framework designed to handle cold-start nodes using generalizable spectral embeddings. It enhances state-of-the-art graph models by allowing predictions on new, unseen nodes without adjacency information.
+
+![SPARC Architecture](./figures/SPARC_framework.png)  
+
+## Architecture Overview
+### SPARC Framework
+- Training Phase: The neural network learns spectral embeddings from adjacency-based Laplacian eigenfunctions.
+- Inference Phase: Cold-start nodes are mapped to spectral space without adjacency information.
+
+### SPARC Model Variants
+- SPARC-GCN: Integrates spectral embeddings into GCN-based models.
+- SPARCphormer: A transformer-based approach for large graphs.
+- SAMBA: Utilizes state-space models for efficient graph learning.
 
 
-## Requirements
+## Features
+- 📈 **Cold-Start Node Support**: Predicts on new nodes without retraining.
+- 🚀 **Scalable**: Works on large graphs, including Amazon2M.
+- 🏆 **State-of-the-Art Accuracy**: Outperforms baseline models on classification, clustering, and link prediction.
 
-To run GraphSpectralNet, you'll need Python 3.x and to run the requirements.txt file as follows: <br>
+---
+
+## 🔧 Requirements & Installation
+
+To set up SPARC, ensure you have Python 3.x installed. Then, install dependencies via:
 
 ```bash
-pip3 install -r requirements.txt
+pip install -r requirements.txt
 ```
 Install [METIS](https://stackoverflow.com/questions/54326406/how-to-install-metis-library-for-python)
 
@@ -26,58 +46,12 @@ As input, at minimum the code requires that a --train_prefix option is specified
 To use GraphSpectralNet on Cora, Pubmed, or the citeseer dataset, `cd` to src directory and run the following:
 
 ```bash
-python3 main.py config/cora|pubmed|citeseer.json
+python main.py config/cora|pubmed|citeseer.json
 ```
-If you want to use your own dataset, you should provide a json config file that looks like the following:
 
-```json
-{
-    "dataset": "cora",
-    "n_clusters": 7,
-    "is_sparse_graph": false,
-    "should_use_ae": false,
-    "should_use_siamese": false,
-    "should_check_generalization": true,
-    "ae": {
-        "architecture": {
-            "hidden_dim1": 512,
-            "hidden_dim2": 512,
-            "hidden_dim3": 2048,
-            "output_dim": 10
-        },
-        "epochs": 100,
-        "n_samples": 70000,
-        "lr": 1e-3,
-        "lr_decay": 0.1,
-        "min_lr": 1e-7,
-        "patience": 5,
-        "batch_size": 256
-    },
-    "spectral": {
-        "architecture": {
-            "n_layers": 4,
-            "hidden_dim1": 1024,
-            "hidden_dim2": 1024,
-            "hidden_dim3": 2048,
-            "output_dim": 512
-        },
-        "epochs": 250,
-        "lr": 1e-3,
-        "lr_decay": 0.05,
-        "min_lr": 1e-10,
-        "batch_size": 10000,
-        "n_neighbors": 8,
-        "scale_k": 2,
-        "is_local_scale": false,
-        "n_clusters": 7,
-        "patience": 10,
-        "bsize": 10000,
-        "num_clusters": 1,
-        "num_clusters_val": 1,
-        "num_clusters_test": 1,
-        "diag_lambda": -1
-    }
+@article{jacobs2024g,
+  title={G-SPARC: SPectral ARchitectures tackling the Cold-start problem in Graph learning},
+  author={Jacobs, Yahel and Dayan, Reut and Shaham, Uri},
+  journal={arXiv preprint arXiv:2411.01532},
+  year={2024}
 }
-
-```
-
