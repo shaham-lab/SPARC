@@ -40,7 +40,7 @@ class SpectralNet:
         
         if should_use_ae:
             ae_trainer = AETrainer(self.config, self.device)
-            self.ae_net = ae_trainer.train(features_batches, precalced_features_batches, val_features_batches)
+            self.ae_net = ae_trainer.train(features_batches, val_features_batches)
             features_batches, val_features_batches = ae_trainer.embed(features_batches, val_features_batches)
             
         train = parts, features_batches, support_batches, y_train_batches, train_mask_batches

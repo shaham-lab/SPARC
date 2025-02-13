@@ -10,7 +10,6 @@ from scipy.sparse import csgraph
 from sklearn.neighbors import KNeighborsClassifier
 import utils, partition_utils
 from utils import *
-from data import load_data
 from metrics import Metrics
 from sklearn.cluster import KMeans
 from SpectralNet import SpectralNet
@@ -24,8 +23,10 @@ from sklearn.cluster import SpectralClustering
 
 SEED = 42
 
+
 class InvalidMatrixException(Exception):
     pass
+
 
 class Unbuffered(object):
    def __init__(self, stream):
@@ -39,6 +40,7 @@ class Unbuffered(object):
    def __getattr__(self, attr):
        return getattr(self.stream, attr)
 
+
 def set_seed(seed: int = 42):
     os.environ['PYTHONHASHSEED'] = str(seed)
     random.seed(seed)
@@ -48,11 +50,12 @@ def set_seed(seed: int = 42):
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
 
+
 def load_data(data_prefix, dataset_str):
-  """Return the required data formats for GCN models."""
-    (num_data, train_adj, full_adj, feats, train_feats, test_feats, labels,
-    train_data, val_data,
-    test_data) = utils.load_graphsage_data(data_prefix, dataset_str)
+    """Return the required data formats for GCN models."""
+    (num_data, train_adj, full_adj, feats, train_feats, test_feats, 
+        labels, train_data, val_data, test_data) = utils.load_graphsage_data(data_prefix, dataset_str)
+    
     visible_data = train_data
 
 
@@ -123,13 +126,16 @@ def main(seed=0):
     val = (idx_parts, val_features_batches, val_support_batches, y_val_batches, val_mask_batches)
     test = (idx_parts, test_features_batches, test_support_batches, y_test_batches, test_mask_batches)
     
+    X = torch.tensor(test_feats, dtype=torch.float32)
     spectralnet = SpectralNet(n_clusters=n_clusters, config=config)
     spectralnet.fit(train, val)
 
 
     Y = spectralnet.predict(X)
-    X_embedded = spectralnet.embed(X) 
     Y = Y / np.sqrt(Y.shape[0])
+    
+    X_embedded = spectralnet.embed(X) 
+    labels = np.argmax(y_test, axis=1)
 
     print('Saving results...')
     # Define the directory path
@@ -146,7 +152,7 @@ def main(seed=0):
     np.save(os.path.join(directory, f'train_mask.npy'), train_mask)
     np.save(os.path.join(directory, f'X_embedded.npy'), X_embedded)
     
-    
+
 if __name__ == "__main__":
     main()
 
