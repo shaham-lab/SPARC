@@ -199,7 +199,7 @@ def load_graphsage_data(dataset_path, dataset_str, normalize=True):
         dtype=np.int32)
     
     is_train = np.ones((num_data), dtype=bool)
-    # is_train[val_data] = False
+    is_train[val_data] = False
     is_train[test_data] = False
     train_data = np.array([n for n in range(num_data) if is_train[n]],
                           dtype=np.int32)

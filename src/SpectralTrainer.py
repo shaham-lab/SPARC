@@ -282,10 +282,10 @@ class SpectralTrainer:
 
 
     def _get_valid_affinity_matrix(self, W, X):
-        W_affinity = self._get_affinity_matrix(X)
-        W = F.normalize(W, p=1, dim=1) + 0.1 * F.normalize(W_affinity, p=1, dim=1)
+        # W_affinity = self._get_affinity_matrix(X)
+        # W = F.normalize(W, p=1, dim=1) + 0.1 * F.normalize(W_affinity, p=1, dim=1)
         # # zero diagonal
-        # W = W + torch.ones_like(W) * 1e-6
+        W = W + torch.ones_like(W) * 1e-6
         W = W + W @ W + W @ W @ W
         W.fill_diagonal_(0)
         W = F.normalize(W, p=2, dim=1) # + 0.1 * F.normalize(W_affinity, p=2, dim=1)
