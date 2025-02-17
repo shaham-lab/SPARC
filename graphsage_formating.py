@@ -305,9 +305,7 @@ def get_dataset_NAGphormer(dataset, split_seed=2, file_dir='./data/'):
     
     norm_adj = adj.dot(D1)
     norm_adj = D2.dot(norm_adj)
-    
-    features += 0.01 * norm_adj.dot(features)
-    
+        
     features = torch.tensor(features, dtype=torch.float32)
     
     

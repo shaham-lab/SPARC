@@ -260,8 +260,10 @@ def load_graphsage_data(dataset_path, dataset_str, normalize=True):
   
   eigen_vecs = np.load(
       gfile.Open(
-          '{}/{}/spectralnet.npy'.format(dataset_path, dataset_str, dataset_str),
+          '../../sparc_results/{}/embeddings.npy'.format(dataset_str),
           'rb')).astype(np.float32)
+  
+
   
   print('eigem_vecs shape: ' + str(eigen_vecs.shape))
   print('feats shape: ' + str(feats.shape))
@@ -304,7 +306,6 @@ def load_graphsage_data(dataset_path, dataset_str, normalize=True):
   test_data = np.array(
       [id_map[n] for n in graph_nx.nodes() if 'test' in graph_nx.nodes[n] and graph_nx.nodes[n]['test']],
       dtype=np.int32)
-  print('test size: ' + str(len(test_data)))
   is_train = np.ones((num_data), dtype=bool)
   is_train[val_data] = False
   is_train[test_data] = False
@@ -357,24 +358,11 @@ def load_graphsage_data(dataset_path, dataset_str, normalize=True):
   full_adj = _construct_adj(edges)
   
 
-  # train_feats = feats[train_data]
   train_feats = feats
   test_feats = feats
   
   train_eigen_vecs = eigen_vecs
   test_eigen_vecs = eigen_vecs
-  
-  # full_adj = full_adj + sp.eye(full_adj.shape[0])
-  # conv_feats = full_adj @ feats
-  # print('conv_feats shape: ' + str(conv_feats.shape))
-  # np.save('train_mask.npy', train_data)
-  # np.save('val_mask.npy', val_data)
-  # np.save('test_mask.npy', test_data)
-  # np.save('feats.npy', feats)
-  # np.save('conv_feats.npy', conv_feats)
-  # np.save('labels.npy', labels)
-  
-  # print('DONE SAVING NEW DATASET')
 
   tf.logging.info('Data loaded, %f seconds.', time.time() - start_time)
   return num_data, train_adj, full_adj, feats, train_feats, test_feats, labels, train_data, val_data, test_data, train_eigen_vecs, test_eigen_vecs

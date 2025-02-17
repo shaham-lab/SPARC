@@ -21,7 +21,7 @@ def parse_args():
     # Main parameters
     parser.add_argument('--name', type=str, default=None)
     parser.add_argument('--dataset', type=str, default='pubmed', help='Choose from {pubmed}')
-    parser.add_argument('--device', type=int, default=3, help='Device cuda id')
+    parser.add_argument('--device', type=int, default=1, help='Device cuda id')
     parser.add_argument('--seed', type=int, default=3407, help='Random seed.')
 
     # Model parameters
@@ -240,10 +240,10 @@ def set_seed(seed):
 
 args = parse_args()
 seed = args.seed
-device = torch.device(f'cuda:2' if torch.cuda.is_available() else 'cpu')
+device = torch.device(f'cuda:{args.device}' if torch.cuda.is_available() else 'cpu')
 
 # Load and process data
-print('Loading data from spectralnet preprocess...')
+# print('Loading data from spectralnet preprocess...')
 spectral_encoding, features, labels, adj, train_mask, val_mask, test_mask = load_data(args.dataset)
 
 print("Processing features...")

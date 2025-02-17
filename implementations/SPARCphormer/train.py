@@ -114,7 +114,7 @@ def load_data(dataset, seed=0):
     features = torch.tensor(features, dtype=torch.float32)
     
     # concat the spectral encoding to the features
-    features = np.concatenate((X_embedded, spectral_encoding), axis=1)
+    features = np.concatenate((features, X_embedded), axis=1)
     
     labels = torch.tensor(labels)
     labels = labels.to(device)

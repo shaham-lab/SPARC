@@ -302,7 +302,7 @@ def main(unused_argv):
   tf.logging.info('Optimization Finished!')
 
   # Save model
-  saver.save(sess, FLAGS.save_name)
+  # saver.save(sess, FLAGS.save_name)
 
   # # Save train acc graph
   # with open('/content/drive/MyDrive/ms/cluster_gcn/spectral.txt', 'w') as file:
