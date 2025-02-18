@@ -145,12 +145,12 @@ def main(seed=0):
     os.makedirs(directory, exist_ok=True)
     
     np.save(os.path.join(directory, f'embeddings.npy'), Y)
-    # np.save(os.path.join(directory, 'features.npy'), X)
-    # np.save(os.path.join(directory, 'labels.npy'), labels)
-    # np.save(os.path.join(directory, f'test_mask.npy'), test_mask)
-    # np.save(os.path.join(directory, f'val_mask.npy'), val_mask)
-    # np.save(os.path.join(directory, f'train_mask.npy'), train_mask)
-    # np.save(os.path.join(directory, f'X_embedded.npy'), X_embedded)
+    np.save(os.path.join(directory, 'features.npy'), X)
+    np.save(os.path.join(directory, 'labels.npy'), labels)
+    np.save(os.path.join(directory, f'test_mask.npy'), test_mask)
+    np.save(os.path.join(directory, f'val_mask.npy'), val_mask)
+    np.save(os.path.join(directory, f'train_mask.npy'), train_mask)
+    np.save(os.path.join(directory, f'X_embedded.npy'), X_embedded)
     
 
 if __name__ == "__main__":

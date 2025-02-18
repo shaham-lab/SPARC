@@ -1,15 +1,5 @@
 # SPARC: Spectral Architectures Tackling the Cold-Start Problem in Graph Learning
 
-## Table of Contents
-- [Overview](#overview)
-- [Architecture Overview](#architecture-overview)
-  - [SPARC Framework](#sparc-framework)
-  - [SPARC Model Variants](#sparc-model-variants)
-- [Features](#features)
-- [Requirements & Installation](#requirements--installation)
-  - [Input Format](#input-format)
-- [Usage](#usage)
-- [Citation](#citation)
 
 ## Overview
 This is the official PyTorch implementation of SPARC from the paper "SPARC: Spectral Architectures Tackling the Cold-Start Problem in Graph Learning" [Paper](https://arxiv.org/abs/2411.01532).

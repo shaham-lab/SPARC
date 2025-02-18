@@ -31,7 +31,7 @@ def parse_args():
     parser.add_argument('--name', type=str, default=None)
     parser.add_argument('--dataset', type=str, default='pubmed',
                         help='Choose from {pubmed}')
-    parser.add_argument('--device', type=int, default=0,
+    parser.add_argument('--device', type=int, default=1,
                         help='Device cuda id')
     parser.add_argument('--seed', type=int, default=3407,
                         help='Random seed.')

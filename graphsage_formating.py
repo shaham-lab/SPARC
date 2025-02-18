@@ -290,7 +290,7 @@ def get_dataset_NAGphormer(dataset, split_seed=2, file_dir='./data/'):
     idx_val = torch.tensor(idx_val)
     idx_test = torch.tensor(idx_test)
     
-    labels = torch.argmax(labels, -1)
+    # labels = torch.argmax(labels, -1)
     
     # split the dataset 0.94 train, 0.03 val, 0.03 test
     idx = np.random.permutation(labels.shape[0])
@@ -432,5 +432,5 @@ def create_graphsage_data(dataset, file_dir):
 
     print("Time: ", time.time() - start_time)
 
-file_dir = './data/'
-create_graphsage_data('reddit', file_dir)
+file_dir = './data/dataset/'
+create_graphsage_data('photo', file_dir)
